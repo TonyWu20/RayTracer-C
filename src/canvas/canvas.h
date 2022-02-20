@@ -10,19 +10,22 @@ struct _Canvas
     char *pixels;
     void (*writePixel)(Canvas *self, int x, int y, char symbol);
     void (*show)(Canvas *self);
+    void (*clear)(Canvas *self);
     void (*destroy)(Canvas *self);
 };
 /* @abstract: Init a pointer of Canvas by specifiying the width and height */
-static inline Canvas *initCanvas(int width, int height);
+static inline Canvas *init_Canvas(int width, int height);
 /* @abstract: Write pixel to Canvas buffer */
 static inline void writeToCanvas(Canvas *self, int x, int y, char symbol);
 /* @abstract: Print the content of Canvas to terminal */
 static inline void printCanvas(Canvas *self);
+/* @abstract: Clear the content of Canvas to terminal */
+static inline void clearCanvas(Canvas *self);
 /* @abstract: Release the memory held by the Canvas object*/
 static inline void destroyCanvas(Canvas *self);
 
 /* @abstract: Init a pointer of Canvas by specifiying the width and height */
-static inline Canvas *initCanvas(int width, int height)
+static inline Canvas *init_Canvas(int width, int height)
 {
     Canvas *cPtr = malloc(sizeof(Canvas));
     cPtr->width = width;
@@ -32,6 +35,7 @@ static inline Canvas *initCanvas(int width, int height)
     memset(cPtr->pixels, ' ', width * height);
     cPtr->writePixel = writeToCanvas;
     cPtr->show = printCanvas;
+    cPtr->clear = clearCanvas;
     cPtr->destroy = destroyCanvas;
     return cPtr;
 }
@@ -43,6 +47,11 @@ static inline void writeToCanvas(Canvas *self, int x, int y, char symbol)
     }
     int Y = self->height - 1 - y;
     self->pixels[Y * self->width + x] = symbol;
+}
+static inline void clearCanvas(Canvas *self)
+{
+    memset(self->pixels, ' ', self->pixelNums);
+    return;
 }
 static inline void destroyCanvas(Canvas *self)
 {

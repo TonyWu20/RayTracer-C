@@ -22,7 +22,7 @@ void test_projectile(double vMultipier)
     struct environment env = init_env(gravity, wind);
     int tickNum = 0;
     printf("Initial Position: (%f, %f)\n", p.position.x, p.position.y);
-    Canvas *fig = initCanvas(200, 46);
+    Canvas *fig = init_Canvas(200, 46);
     while (p.position[1] > 0.0)
     {
         p = tick(&env, &p);
