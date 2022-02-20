@@ -48,24 +48,21 @@ void silhouette()
     /* WINDOW *win = initscr(); */
     /* int row, col; */
     /* getmaxyx(win, row, col); */
-    int row = 40;
-    int col = 200;
+    int row = 48;
+    int col = 177;
     float half = wall_size / 2;
     float pixel_size = wall_size / row;
     printf("\e[?25l");
     Canvas *fig = init_Canvas(col, row);
     castRayOnSphere(half, wall_z, pixel_size, ray_origin, &s, fig);
     fig->show(fig);
-    sleep(1);
     fig->clear(fig);
     s.transform = scaling_matrix((simd_float3){-0.3, 0.5, 3});
     castRayOnSphere(half, wall_z, pixel_size, ray_origin, &s, fig);
-    sleep(1);
     fig->clear(fig);
     s.transform =
         simd_mul(shearing_matrix(.5, .2, .2, .2, 1, 0.5), s.transform);
     castRayOnSphere(half, wall_z, pixel_size, ray_origin, &s, fig);
-    sleep(1);
     fig->clear(fig);
     s.transform =
         simd_mul(translation_matrix((simd_float3){-1, 1.5, 3}), s.transform);

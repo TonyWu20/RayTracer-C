@@ -1,4 +1,4 @@
-#include "cannon.h"
+#include <cannon/cannon.h>
 #include <simd/simd.h>
 #include <stdio.h>
 #include <stdlib.h>
