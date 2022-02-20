@@ -9,7 +9,7 @@ static inline simd_float4x4 scaling_matrix(simd_float3 xyz)
 
 static inline simd_float4x4 translation_matrix(simd_float3 xyz)
 {
-    simd_float4x4 matrix = simd_diagonal_matrix((simd_float4){1, 1, 1, 1});
+    simd_float4x4 matrix = matrix_identity_float4x4;
     matrix.columns[3] = simd_make_float4(xyz, 1);
     return matrix;
 }
