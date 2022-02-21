@@ -10,9 +10,10 @@ struct Ray
 {
     simd_float4 origin;
     simd_float4 directionVec;
-    IntersectCollection *intxnSphere;
+    IntersectCollection *xs;
     int (*intersects_with_Sphere)(Ray *self, const Sphere *s);
     Ray (*transform)(Ray *self, simd_float4x4 *transformMatrix);
+    void (*destroy_XS)(Ray *self);
 };
 
 struct SphereIntersection
@@ -32,6 +33,7 @@ struct IntersectCollection
 /* @abstract: Init a Ray object */
 static inline Ray init_Ray(simd_float4 origin, simd_float4 directionVec);
 /* @abstract: Get the current position of the Ray after time */
+static inline void destroy_XS(Ray *self);
 static inline simd_float4 currPosition(const Ray *ray, float distance);
 /* @abstract: Returns a pointer of pointers of Intersect struct
  * @params: (const Ray *) ray, (const Sphere *) s, (int *) returnSize
@@ -42,6 +44,8 @@ static inline IntersectCollection *init_intxnCollection(void);
 /* @abstract: Apply a transformation to the Ray, returns a new Ray */
 static inline Ray apply_transformation(Ray *self,
                                        simd_float4x4 *transformMatrix);
+/* @abstrat: Sort the IntersectCollection in ascending order */
+static inline void sort_xs(IntersectCollection *self);
 /* @abstract: Release memory occupied by IntersectCollection */
 static inline void destroy_intxnCollection(IntersectCollection *self);
 /* @abstract: Compute intersects with the given sphere and add to
@@ -58,10 +62,15 @@ static inline Ray init_Ray(simd_float4 origin, simd_float4 directionVec)
     Ray result;
     result.origin = origin;
     result.directionVec = directionVec;
-    result.intxnSphere = NULL;
+    result.xs = NULL;
     result.intersects_with_Sphere = intersects_with_Sphere;
     result.transform = apply_transformation;
+    result.destroy_XS = destroy_XS;
     return result;
+}
+static inline void destroy_XS(Ray *self)
+{
+    self->xs->destroy(self->xs);
 }
 static inline simd_float4 currPosition(const Ray *ray, float distance)
 {
@@ -99,4 +108,21 @@ static inline void destroy_intxnCollection(IntersectCollection *self)
     }
     free(self->intersects);
     free(self);
+}
+
+static int SphereIntersectCmp(const void *a, const void *b)
+{
+    SphereIntersect *aPtr = *(SphereIntersect **)a;
+    SphereIntersect *bPtr = *(SphereIntersect **)b;
+    if (aPtr->t - bPtr->t > 0)
+        return 1;
+    else if (fabsf(aPtr->t - bPtr->t) < 0.0001)
+        return 0;
+    else
+        return -1;
+}
+static inline void sort_xs(IntersectCollection *self)
+{
+    qsort(self->intersects, self->intersects_counts, sizeof(SphereIntersect *),
+          SphereIntersectCmp);
 }

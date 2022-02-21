@@ -13,39 +13,26 @@ int intersects_with_Sphere(Ray *ray, const Sphere *s)
     {
         return -1;
     }
-    if (!ray->intxnSphere)
-        ray->intxnSphere = init_intxnCollection();
-    int *count = &ray->intxnSphere->intersects_counts;
+    if (!ray->xs)
+        ray->xs = init_intxnCollection();
+    int *count = &ray->xs->intersects_counts;
     for (int i = 0; i < 2; ++i)
     {
         (*count)++;
-        ray->intxnSphere->intersects = realloc(
-            ray->intxnSphere->intersects, sizeof(SphereIntersect *) * (*count));
-        ray->intxnSphere->intersects[*count - 1] =
-            malloc(sizeof(SphereIntersect));
-        ray->intxnSphere->intersects[*count - 1]->t = (i == 0) ? t1 : t2;
-        ray->intxnSphere->intersects[*count - 1]->pos =
+        ray->xs->intersects =
+            realloc(ray->xs->intersects, sizeof(SphereIntersect *) * (*count));
+        ray->xs->intersects[*count - 1] = malloc(sizeof(SphereIntersect));
+        ray->xs->intersects[*count - 1]->t = (i == 0) ? t1 : t2;
+        ray->xs->intersects[*count - 1]->pos =
             (i == 0) ? currPosition(ray, t1) : currPosition(ray, t2);
-        ray->intxnSphere->intersects[*count - 1]->object = s;
+        ray->xs->intersects[*count - 1]->object = s;
     }
     return 1;
 }
 
-static int SphereIntersectCmp(const void *a, const void *b)
-{
-    SphereIntersect *aPtr = *(SphereIntersect **)a;
-    SphereIntersect *bPtr = *(SphereIntersect **)b;
-    if (aPtr->t - bPtr->t > 0)
-        return 1;
-    else if (aPtr->t == bPtr->t)
-        return 0;
-    else
-        return -1;
-}
 SphereIntersect *hit_Sphere(IntersectCollection *collection)
 {
-    qsort(collection->intersects, collection->intersects_counts,
-          sizeof(SphereIntersect *), SphereIntersectCmp);
+    sort_xs(collection);
     SphereIntersect *result;
     for (int i = 0; i < collection->intersects_counts; ++i)
     {
