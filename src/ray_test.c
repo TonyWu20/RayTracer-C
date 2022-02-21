@@ -16,7 +16,7 @@ static inline void castRayOnSphere(float half, float wall_z, float pixel_size,
             simd_float4 pos = {world_x, world_y, wall_z, 1};
             Ray r = init_Ray(ray_origin, simd_normalize(pos - ray_origin));
             r.intersects_with_Sphere(&r, s);
-            IntersectCollection *xs = r.intxnSphere;
+            IntersectCollection *xs = r.xs;
             if (xs)
             {
                 SphereIntersect *hit = hit_Sphere(xs);
@@ -49,7 +49,7 @@ static inline void castRayOnSphere_PPM(float half, float wall_z,
             Ray r = init_Ray(ray_origin, simd_normalize(pos - ray_origin));
             r = r.transform(&r, &s->transform);
             r.intersects_with_Sphere(&r, s);
-            IntersectCollection *xs = r.intxnSphere;
+            IntersectCollection *xs = r.xs;
             if (xs)
             {
                 SphereIntersect *hit = hit_Sphere(xs);
@@ -65,6 +65,17 @@ static inline void castRayOnSphere_PPM(float half, float wall_z,
             }
         }
     }
+}
+static void test_intersect()
+{
+    Ray r = init_Ray((simd_float4){0, 0, 5, 1}, (simd_float4){0, 0, 1, 0});
+    Sphere s = create_Sphere((simd_float4){0, 0, 0, 1}, 1);
+    r.intersects_with_Sphere(&r, &s);
+    for (int i = 0; i < r.xs->intersects_counts; ++i)
+    {
+        printf("xs[%d].t = %f", i, r.xs->intersects[i]->t);
+    }
+    r.destroy_XS(&r);
 }
 void silhouette()
 {
@@ -195,10 +206,11 @@ void silhouette_image()
 int main(int argc, char *argv[])
 {
     /* silhouette(); */
-    time_t t = clock();
-    silhouette_image();
-    t = clock() - t;
-    double timeInterval = (double)t / CLOCKS_PER_SEC;
-    printf("Render ppm took %f sec.\n", timeInterval);
+    /* time_t t = clock(); */
+    /* silhouette_image(); */
+    /* t = clock() - t; */
+    /* double timeInterval = (double)t / CLOCKS_PER_SEC; */
+    /* printf("Render ppm took %f sec.\n", timeInterval); */
+    test_intersect();
     return 0;
 }

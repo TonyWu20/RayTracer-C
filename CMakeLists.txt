@@ -23,3 +23,6 @@ target_link_libraries(ray_sphere ray -lncurses)
 add_executable(normal_test ./src/normal_test.c)
 # Test lighting
 add_executable(light_test ./src/light_test.c)
+# Test world
+add_executable(world_test ./src/world_test.c)
+target_link_libraries(world_test ray)

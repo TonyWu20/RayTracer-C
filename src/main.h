@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <world/world.h>
 
 /* @abstract: Quick print of a float4 vector */
 static inline void print_float4(simd_float4 vec4);

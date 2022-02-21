@@ -31,3 +31,4 @@ Currently using Apple's `simd` library.
 - `src/colors/`: RGB to Luma conversion
 - `src/canvas/`: `writeLumaPixels` write char according to converted Luma index.
 - `src/ray_test.c`: Light rendering on the sphere.
+![shading](./ray_test.png)
