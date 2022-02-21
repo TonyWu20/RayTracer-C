@@ -1,6 +1,7 @@
 #pragma once
-#include <lights/lights.h>
 #include <simd/simd.h>
+
+typedef simd_float3 Color; // typedef a simd_float3 as Color
 
 typedef struct Material Material;
 struct Material

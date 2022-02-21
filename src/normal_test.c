@@ -45,5 +45,9 @@ int main(int argc, char *argv[])
 {
     test_normal();
     test_on_transformed();
+    simd_float3 a = {1, 1, 0.5};
+    simd_float3 b = {2, 2, 3};
+    simd_float3 c = a * b;
+    print_float4(simd_make_float4(c, 0));
     return 0;
 }

@@ -21,3 +21,5 @@ add_executable(ray_sphere ./src/ray_test.c)
 target_link_libraries(ray_sphere ray -lncurses)
 # Test 4
 add_executable(normal_test ./src/normal_test.c)
+# Test lighting
+add_executable(light_test ./src/light_test.c)
