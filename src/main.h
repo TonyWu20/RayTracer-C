@@ -1,5 +1,6 @@
 #pragma once
 #include <canvas/canvas.h>
+#include <canvas/ppm_canvas.h>
 #include <colors/colors.h>
 #include <geometry/geometry.h>
 #include <lights/lights.h>

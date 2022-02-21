@@ -65,7 +65,7 @@ static inline Color lighting(Material *m, Light *light, simd_float4 *point,
          * A negative number means the light reflects away from the eye.
          */
         simd_float4 reflectV = simd_reflect(
-            -lightV,
+            lightV,
             *normalV); // The normalV from surface_normal_at is normalized
         float reflect_dot_eye = simd_dot(reflectV, *eyeV);
         if (reflect_dot_eye <= 0)
