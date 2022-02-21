@@ -25,3 +25,9 @@ Currently using Apple's `simd` library.
 
 ## Chapter 5 Ray-Sphere Intersections
 `src/geometry/sphere.h` and `src/ray/`
+
+## Chapter 6 Light and Shading
+- `src/lights/`: Light struct and `lignting` function 
+- `src/colors/`: RGB to Luma conversion
+- `src/canvas/`: `writeLumaPixels` write char according to converted Luma index.
+- `src/ray_test.c`: Light rendering on the sphere.
