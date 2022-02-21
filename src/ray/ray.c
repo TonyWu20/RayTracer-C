@@ -15,19 +15,18 @@ int intersects_with_Sphere(Ray *ray, const Sphere *s)
     }
     if (!ray->intxnSphere)
         ray->intxnSphere = init_intxnCollection();
-    int intxnCounts = ray->intxnSphere->intersects_counts; // Current Count
-    ray->intxnSphere->intersects =
-        realloc(ray->intxnSphere->intersects,
-                sizeof(SphereIntersect *) * (intxnCounts + 2)); // Extend by 2
-    ray->intxnSphere->intersects_counts += 2; // Add count by 2
+    int *count = &ray->intxnSphere->intersects_counts;
     for (int i = 0; i < 2; ++i)
     {
-        ray->intxnSphere->intersects[intxnCounts + i] =
+        (*count)++;
+        ray->intxnSphere->intersects = realloc(
+            ray->intxnSphere->intersects, sizeof(SphereIntersect *) * (*count));
+        ray->intxnSphere->intersects[*count - 1] =
             malloc(sizeof(SphereIntersect));
-        ray->intxnSphere->intersects[intxnCounts + i]->t = (i == 0) ? t1 : t2;
-        ray->intxnSphere->intersects[intxnCounts + i]->pos =
+        ray->intxnSphere->intersects[*count - 1]->t = (i == 0) ? t1 : t2;
+        ray->intxnSphere->intersects[*count - 1]->pos =
             (i == 0) ? currPosition(ray, t1) : currPosition(ray, t2);
-        ray->intxnSphere->intersects[intxnCounts + i]->object = s;
+        ray->intxnSphere->intersects[*count - 1]->object = s;
     }
     return 1;
 }

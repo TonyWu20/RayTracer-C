@@ -9,6 +9,7 @@ struct _Canvas
     int pixelNums;
     char *pixels;
     void (*writePixel)(Canvas *self, int x, int y, char symbol);
+    void (*writeLumaPixel)(Canvas *self, int x, int y, int luma);
     void (*show)(Canvas *self);
     void (*clear)(Canvas *self);
     void (*destroy)(Canvas *self);
@@ -17,6 +18,8 @@ struct _Canvas
 static inline Canvas *init_Canvas(int width, int height);
 /* @abstract: Write pixel to Canvas buffer */
 static inline void writeToCanvas(Canvas *self, int x, int y, char symbol);
+/* @abstract: Write pixel determined by the luma value to Canvas buffer */
+static inline void writeToCanvas_luma(Canvas *self, int x, int y, int luma);
 /* @abstract: Print the content of Canvas to terminal */
 static inline void printCanvas(Canvas *self);
 /* @abstract: Clear the content of Canvas to terminal */
@@ -34,6 +37,7 @@ static inline Canvas *init_Canvas(int width, int height)
     cPtr->pixels = malloc(width * height * sizeof(char));
     memset(cPtr->pixels, ' ', width * height);
     cPtr->writePixel = writeToCanvas;
+    cPtr->writeLumaPixel = writeToCanvas_luma;
     cPtr->show = printCanvas;
     cPtr->clear = clearCanvas;
     cPtr->destroy = destroyCanvas;
@@ -47,6 +51,15 @@ static inline void writeToCanvas(Canvas *self, int x, int y, char symbol)
     }
     int Y = self->height - 1 - y;
     self->pixels[Y * self->width + x] = symbol;
+}
+static inline void writeToCanvas_luma(Canvas *self, int x, int y, int luma)
+{
+    if (x < 0 || x >= self->width || y < 0 || y >= self->height)
+    {
+        return;
+    }
+    int Y = self->height - 1 - y;
+    self->pixels[Y * self->width + x] = ".,-~:;=!*#$@"[luma > 0 ? luma : 0];
 }
 static inline void clearCanvas(Canvas *self)
 {

@@ -85,7 +85,7 @@ static inline Ray apply_transformation(Ray *self,
  */
 static inline IntersectCollection *init_intxnCollection(void)
 {
-    IntersectCollection *result = malloc(sizeof(*result));
+    IntersectCollection *result = malloc(sizeof(IntersectCollection));
     result->intersects = NULL;
     result->intersects_counts = 0;
     result->destroy = destroy_intxnCollection;
@@ -97,5 +97,6 @@ static inline void destroy_intxnCollection(IntersectCollection *self)
     {
         free(self->intersects[i]);
     }
+    free(self->intersects);
     free(self);
 }

@@ -1,19 +1,14 @@
-#include <canvas/canvas.h>
-/* #include <ncurses.h> */
-#include <geometry/geometry.h>
-#include <ray/ray.h>
-#include <stdio.h>
-#include <time.h>
-#include <unistd.h>
-#define FRAMERATE 60
+#include <main.h>
+#define FRAMERATE 120
 #define SLEEPTIME (1000 / FRAMERATE) % 1000 * 1000000;
+
 static inline void castRayOnSphere(float half, float wall_z, float pixel_size,
                                    simd_float4 ray_origin, Sphere *s,
-                                   Canvas *fig)
+                                   Light *light, Canvas *fig)
 {
-    struct timespec tim, tim2;
-    tim.tv_sec = 0;
-    tim.tv_nsec = SLEEPTIME;
+    /* struct timespec tim, tim2; */
+    /* tim.tv_sec = 0; */
+    /* tim.tv_nsec = SLEEPTIME; */
     int shift_x = (fig->width - 2 * fig->height) / 2;
     for (int y = 0; y < fig->height; ++y)
     {
@@ -23,28 +18,35 @@ static inline void castRayOnSphere(float half, float wall_z, float pixel_size,
             float world_x = -half + pixel_size * x;
             simd_float4 pos = {world_x, world_y, wall_z, 1};
             Ray r = init_Ray(ray_origin, simd_normalize(pos - ray_origin));
-            r = r.transform(&r, &s->transform);
             r.intersects_with_Sphere(&r, s);
             IntersectCollection *xs = r.intxnSphere;
             if (xs)
             {
-                fig->writePixel(fig, shift_x + 2 * x, y, 'x');
-                fig->writePixel(fig, shift_x + 2 * x - 1, y, '%');
-                r.intxnSphere->destroy(r.intxnSphere);
+                SphereIntersect *hit = hit_Sphere(xs);
+                simd_float4 hitPoint = currPosition(&r, hit->t);
+                simd_float4 surfaceNormal =
+                    hit->object->surface_normal_at(hit->object, &hitPoint);
+                simd_float4 eye = -r.directionVec;
+                Color pixelColor =
+                    lighting(&s->m, light, &hitPoint, &eye, &surfaceNormal);
+                int luma = lumaForColor(pixelColor);
+                fig->writeLumaPixel(fig, shift_x + 2 * x, y, luma);
+                fig->writeLumaPixel(fig, shift_x + 2 * x - 1, y, luma);
+                xs->destroy(xs);
             }
         }
-        nanosleep(&tim, &tim2);
-        fig->show(fig);
     }
 }
 void silhouette()
 {
     float r = 1;
     Sphere s = create_Sphere((simd_float4){0, 0, 0, 1}, r);
-    simd_float4 ray_origin = {0, 0, -6, 1};
+    s.m.color = (Color){1, 0.8, 1};
+    simd_float4 ray_origin = {0, 0, -5, 1};
     float wall_z = 10;
     float on_wall_d = 2 * r * (wall_z - ray_origin.z) / (0.0 - ray_origin.z);
-    float wall_size = on_wall_d + 4;
+    float wall_size = on_wall_d + 2;
+    Light light = point_light((simd_float4){-5, -5, 5, 1}, (Color){2, 2, 2});
     /* WINDOW *win = initscr(); */
     /* int row, col; */
     /* getmaxyx(win, row, col); */
@@ -54,20 +56,65 @@ void silhouette()
     float pixel_size = wall_size / row;
     printf("\e[?25l");
     Canvas *fig = init_Canvas(col, row);
-    castRayOnSphere(half, wall_z, pixel_size, ray_origin, &s, fig);
-    fig->show(fig);
-    fig->clear(fig);
-    s.transform = scaling_matrix((simd_float3){-0.3, 0.5, 3});
-    castRayOnSphere(half, wall_z, pixel_size, ray_origin, &s, fig);
-    fig->clear(fig);
-    s.transform =
-        simd_mul(shearing_matrix(.5, .2, .2, .2, 1, 0.5), s.transform);
-    castRayOnSphere(half, wall_z, pixel_size, ray_origin, &s, fig);
-    fig->clear(fig);
-    s.transform =
-        simd_mul(translation_matrix((simd_float3){-1, 1.5, 3}), s.transform);
-    castRayOnSphere(half, wall_z, pixel_size, ray_origin, &s, fig);
-    fig->show(fig);
+    struct timespec tim, tim2;
+    tim.tv_sec = 0;
+    tim.tv_nsec = SLEEPTIME;
+    while (light.pos.x <= 5)
+    {
+        light.pos.x += 0.2;
+        castRayOnSphere(half, wall_z, pixel_size, ray_origin, &s, &light, fig);
+        fig->show(fig);
+        nanosleep(&tim, &tim2);
+    }
+    while (light.pos.y <= 5)
+    {
+        light.pos.y += 0.2;
+        castRayOnSphere(half, wall_z, pixel_size, ray_origin, &s, &light, fig);
+        fig->show(fig);
+        nanosleep(&tim, &tim2);
+    }
+    while (light.pos.x >= -5)
+    {
+        light.pos.x -= 0.2;
+        castRayOnSphere(half, wall_z, pixel_size, ray_origin, &s, &light, fig);
+        fig->show(fig);
+        nanosleep(&tim, &tim2);
+    }
+    while (light.pos.y >= -5)
+    {
+        light.pos.y -= 0.2;
+        castRayOnSphere(half, wall_z, pixel_size, ray_origin, &s, &light, fig);
+        fig->show(fig);
+        nanosleep(&tim, &tim2);
+    }
+    while (light.pos.x <= 0 && light.pos.y <= 0)
+    {
+        light.pos += (simd_float4){0.1, 0.1, 0, 0};
+        castRayOnSphere(half, wall_z, pixel_size, ray_origin, &s, &light, fig);
+        fig->show(fig);
+        nanosleep(&tim, &tim2);
+    }
+    while (light.pos.z >= 2)
+    {
+        light.pos.z -= .1;
+        castRayOnSphere(half, wall_z, pixel_size, ray_origin, &s, &light, fig);
+        fig->show(fig);
+        nanosleep(&tim, &tim2);
+    }
+    while (light.pos.z <= 8)
+    {
+        light.pos.z += .1;
+        castRayOnSphere(half, wall_z, pixel_size, ray_origin, &s, &light, fig);
+        fig->show(fig);
+        nanosleep(&tim, &tim2);
+    }
+    while (light.pos.z >= 5)
+    {
+        light.pos.z -= .1;
+        castRayOnSphere(half, wall_z, pixel_size, ray_origin, &s, &light, fig);
+        fig->show(fig);
+        nanosleep(&tim, &tim2);
+    }
     getchar();
     fig->destroy(fig);
     printf("\e[?25h");

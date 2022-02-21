@@ -1,8 +1,10 @@
 #pragma once
 #include <canvas/canvas.h>
+#include <colors/colors.h>
 #include <geometry/geometry.h>
 #include <lights/lights.h>
 #include <materials/materials.h>
+#include <ray/ray.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>

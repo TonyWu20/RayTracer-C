@@ -18,7 +18,8 @@ struct Sphere
     float r;            // radius
     simd_float4x4 transform;
     Material m;
-    simd_float4 (*surface_normal_at)(Sphere *self, simd_float4 *worldPoint);
+    simd_float4 (*surface_normal_at)(const Sphere *self,
+                                     simd_float4 *worldPoint);
     void (*set_transform)(Sphere *self, simd_float4x4 *transformMat);
 };
 
@@ -28,7 +29,7 @@ static inline Circle create_Circle(simd_float3 origin, float r);
 static inline Sphere create_Sphere(simd_float4 origin, float r);
 /* @abstract: Return a surface normal for a point at surface of the Sphere
  */
-static inline simd_float4 surface_normal_at(Sphere *self,
+static inline simd_float4 surface_normal_at(const Sphere *self,
                                             simd_float4 *worldPoint);
 /* @abstract: Setup a transformation to the Sphere
  * @params: Sphere *self, simd_float4x4 *transformMat
@@ -57,7 +58,7 @@ static inline Sphere create_Sphere(simd_float4 origin, float r)
     result.set_transform = set_transform;
     return result;
 }
-static inline simd_float4 surface_normal_at(Sphere *self,
+static inline simd_float4 surface_normal_at(const Sphere *self,
                                             simd_float4 *worldPoint)
 {
     if (worldPoint->w != 1)
