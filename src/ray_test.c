@@ -59,7 +59,6 @@ static inline void castRayOnSphere_PPM(float half, float wall_z,
                 simd_float4 eye = -1 * r.directionVec;
                 Color pixelColor =
                     lighting(&s->m, light, &hitPoint, &eye, &surfaceNormal);
-                pixelColor = simd_clamp(pixelColor, 0, 1);
                 fig->writePixel(fig, x, y, pixelColor);
                 xs->destroy(xs);
             }
@@ -173,7 +172,7 @@ void silhouette_image()
 {
     float r = 1;
     Sphere s = create_Sphere((simd_float4){0, 0, 0, 1}, r);
-    s.m.color = (Color){255.0 / 255, 165.0 / 255, 0};
+    s.m.color = (Color){22.0 / 255, 252.0 / 255, 122.0 / 255};
     s.m.shininess = 10;
     s.m.diffuse = 0.9;
     s.m.specular = .9;
@@ -183,7 +182,7 @@ void silhouette_image()
     float on_wall_d = 2 * r * (wall_z - ray_origin.z) / (0.0 - ray_origin.z);
     float wall_size = on_wall_d + 2;
     Light light =
-        point_light((simd_float4){-10, -10, 10, 1}, (Color){.8, .1, 1});
+        point_light((simd_float4){-10, -10, -10, 1}, (Color){1, 0, 1});
     /* WINDOW *win = initscr(); */
     /* int row, col; */
     /* getmaxyx(win, row, col); */
@@ -206,11 +205,11 @@ void silhouette_image()
 int main(int argc, char *argv[])
 {
     /* silhouette(); */
-    /* time_t t = clock(); */
-    /* silhouette_image(); */
-    /* t = clock() - t; */
-    /* double timeInterval = (double)t / CLOCKS_PER_SEC; */
-    /* printf("Render ppm took %f sec.\n", timeInterval); */
-    test_intersect();
+    time_t t = clock();
+    silhouette_image();
+    t = clock() - t;
+    double timeInterval = (double)t / CLOCKS_PER_SEC;
+    printf("Render ppm took %f sec.\n", timeInterval);
+    /* test_intersect(); */
     return 0;
 }
