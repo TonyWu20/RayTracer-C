@@ -70,7 +70,8 @@ static inline Ray init_Ray(simd_float4 origin, simd_float4 directionVec)
 }
 static inline void destroy_XS(Ray *self)
 {
-    self->xs->destroy(self->xs);
+    if (self->xs)
+        self->xs->destroy(self->xs);
 }
 static inline simd_float4 currPosition(const Ray *ray, float distance)
 {
