@@ -1,6 +1,5 @@
 #pragma once
 #include <colors/colors.h>
-#include <main.h>
 #include <materials/materials.h>
 #include <simd/simd.h>
 #include <stdio.h>
@@ -23,8 +22,9 @@ static inline Light point_light(simd_float4 pos, Color intensity);
  * eye and normal vectors from the Phong reflection model
  * @returns: a Color type
  */
-static inline Color lighting(Material *m, Light *light, simd_float4 *point,
-                             simd_float4 *eyeV, simd_float4 *normalV);
+static inline Color lighting(const Material *m, Light *light,
+                             simd_float4 *point, simd_float4 *eyeV,
+                             simd_float4 *normalV);
 
 #pragma mark -Implementations
 static inline Light point_light(simd_float4 pos, Color intensity)
@@ -35,8 +35,9 @@ static inline Light point_light(simd_float4 pos, Color intensity)
     return result;
 }
 
-static inline Color lighting(Material *m, Light *light, simd_float4 *point,
-                             simd_float4 *eyeV, simd_float4 *normalV)
+static inline Color lighting(const Material *m, Light *light,
+                             simd_float4 *point, simd_float4 *eyeV,
+                             simd_float4 *normalV)
 {
     /* Combine the surface color with the light's intensity */
     Color eff_color = m->color * light->intensity;
@@ -65,7 +66,7 @@ static inline Color lighting(Material *m, Light *light, simd_float4 *point,
          * A negative number means the light reflects away from the eye.
          */
         simd_float4 reflectV = simd_reflect(
-            lightV,
+            -lightV,
             *normalV); // The normalV from surface_normal_at is normalized
         float reflect_dot_eye = simd_dot(reflectV, *eyeV);
         if (reflect_dot_eye <= 0)
