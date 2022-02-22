@@ -53,6 +53,7 @@ static inline void writePixel(PPMCanvas *self, int x, int y, Color pixelColor)
     }
     int Y = self->height - 1 - y;
     int idx = Y * self->width + x;
+    pixelColor = simd_clamp(pixelColor, 0, 1);
     for (int i = 0; i < 3; ++i)
     {
         self->pixels[idx * 3 + i] = pixelColor[i];
