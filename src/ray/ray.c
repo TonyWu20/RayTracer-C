@@ -7,8 +7,8 @@ int intersects_with_Sphere(Ray *ray, const Sphere *s)
     float b = 2 * simd_dot(ray->directionVec, sphere_to_ray);
     float c = simd_dot(sphere_to_ray, sphere_to_ray) - s->r * s->r;
     float discriminant = b * b - 4 * a * c;
-    float t1 = -b - sqrtf(discriminant) / (2 * a);
-    float t2 = -b + sqrtf(discriminant) / (2 * a);
+    float t1 = (-b - sqrtf(discriminant)) / (2 * a);
+    float t2 = (-b + sqrtf(discriminant)) / (2 * a);
     if (discriminant < 0)
     {
         return -1;
