@@ -32,3 +32,6 @@ Currently using Apple's `simd` library.
 - `src/canvas/`: `writeLumaPixels` write char according to converted Luma index.
 - `src/ray_test.c`: Light rendering on the sphere.
 ![shading](./ray_test_sample.png)
+
+## Chapter 7 Making a scene
+- `src/world/`: A world and currently necessray methods
