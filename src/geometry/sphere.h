@@ -2,8 +2,7 @@
 #include <materials/materials.h>
 #include <simd/simd.h>
 #include <stdio.h>
-#define EPSILON 0.0001
-
+const float EPSILON = 0.00001;
 typedef struct
 {
     simd_float3 origin; // (x, y, w)
