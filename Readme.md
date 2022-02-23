@@ -36,3 +36,8 @@ Currently using Apple's `simd` library.
 ## Chapter 7 Making a scene
 - `src/world/`: A world and currently necessray methods
 ![world](./world_render_example.png)
+
+## Chapter 8 Shadows
+
+Implemented shadow rendering.
+Add ascii true color output in `src/canvas/canvas.h`
