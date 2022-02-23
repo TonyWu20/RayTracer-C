@@ -1,7 +1,9 @@
 #pragma once
+#include <canvas/ppm_canvas.h>
 #include <geometry/geometry.h>
 #include <ray/ray.h>
 #include <stdlib.h>
+#include <world/world.h>
 /* typedef */
 typedef struct camara Camera;
 struct camara
@@ -19,6 +21,8 @@ struct camara
 struct Camera_VTable
 {
     void (*destroy)(Camera *);
+    Ray (*ray_for_pixel)(Camera *, int, int);
+    PPMCanvas *(*render)(Camera *, World *);
 };
 /* typedef ends */
 
@@ -38,10 +42,17 @@ static inline void destroy_Camera(Camera *self);
 /* @abstract: Returns a new ray that starts at at the camera and */
 /* passes through the indicated (x, y) pixel on the canvas. */
 static inline Ray ray_for_pixel(Camera *self, int x, int y);
+/* @abstract: Render an image of the given world */
+/* @params: Camera *self, World *world */
+/* @Returns: PPMCanvas *fig */
+/* @Warning: The returned PPMCanvas *fig is malloced */
+static inline PPMCanvas *render(Camera *self, World *world);
 
 #pragma mark -Implementations
 struct Camera_VTable camVTable = {
     destroy_Camera,
+    ray_for_pixel,
+    render,
 };
 static inline Camera *init_Camera(int hSize, int vSize, float fovAngle)
 {
@@ -84,7 +95,7 @@ static inline Ray ray_for_pixel(Camera *self, int x, int y)
     // The untransformed coordinates of the pixel in world space.
     // (remember that the camera looks toward -z, so +x is to *right*)
     // *Different from the book since we're using a right-hand coord
-    float world_x = self->half_width + xoffset; // +x to right
+    float world_x = self->half_width - xoffset; // +x to right
     float world_y = self->half_height - yoffset;
     // using the camera matrix, transform the canvas point and the origin,
     // then compute the ray's direction vector.
@@ -95,4 +106,19 @@ static inline Ray ray_for_pixel(Camera *self, int x, int y)
         simd_mul(simd_inverse(*self->transform), (simd_float4){0, 0, 0, 1});
     simd_float4 directionVec = simd_normalize(pixel - origin);
     return init_Ray(origin, directionVec);
+}
+static inline PPMCanvas *render(Camera *self, World *world)
+{
+    PPMCanvas *fig = init_PPMCanvas(self->hSize, self->vSize);
+    for (int y = 0; y < self->vSize; ++y)
+    {
+        for (int x = 0; x < self->hSize; ++x)
+        {
+            Ray r = ray_for_pixel(self, x, y);
+            Color color = color_at(world, &r);
+            fig->writePixel(fig, x, y, color);
+            r.destroy_XS(&r);
+        }
+    }
+    return fig;
 }
