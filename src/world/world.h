@@ -35,6 +35,7 @@ struct world_vtable
     IntersectCollection *(*intersect_world)(World *self, Ray *rayPtr);
     Color (*shade_hit)(World *self, PreComp *comp);
     void (*add_light)(World *self, Light *light);
+    void (*add_sphere)(World *self, Sphere *sphere);
     Color (*color_at)(World *self, Ray *r);
 };
 /* @abstract: Init a default world with a lightsource at (-10, -10, -10)
@@ -50,6 +51,9 @@ static inline Color shade_hit(World *self, PreComp *comp);
 /* @abstract: Add a light source to the world, update lightCounts by one */
 /* @params: World *self, Light *light */
 static inline void add_light(World *self, Light *light);
+/* @abstract: Add a sphere to the world, update sphereCounts by one */
+/* @params: World *self, Sphere *sphere */
+static inline void add_sphere(World *self, Sphere *sphere);
 /* @abstract: Intersect the world with the given ray, and then return
  * the color at the intersection */
 static inline Color color_at(World *self, Ray *r);
@@ -57,7 +61,7 @@ static inline Color color_at(World *self, Ray *r);
 /* @abstract: Init a PreComp struct by an Intersect and a ray */
 /* @params: const SphereIntersect *, const Ray * */
 /* @Warning: Free after use! */
-static inline PreComp *prepare_computations(const SphereIntersect *intxs,
+static inline PreComp *prepare_computations(SphereIntersect *intxs,
                                             const Ray *r);
 static inline void destroy_precomp(PreComp *self);
 /* @abstrac: Returns the IntersectCollection ptr of a ray intersects with
@@ -68,14 +72,14 @@ static inline IntersectCollection *intersect_world(World *self, Ray *rayPtr);
 
 #pragma mark -Implementation
 struct world_vtable WorldVtable = {
-    destroy_world, intersect_world, shade_hit, add_light, color_at,
+    destroy_world, intersect_world, shade_hit, add_light, add_sphere, color_at,
 };
 static inline World *init_default_world(void)
 {
     World *new = malloc(sizeof(World));
     new->lights = malloc(sizeof(Light *));
     Light *light = malloc(sizeof(Light));
-    *light = point_light((simd_float4){-10, -10, -10, 1}, (Color){1, 1, 1});
+    *light = point_light((simd_float4){-10, 10, -10, 1}, (Color){1, 1, 1});
     new->lights[0] = light;
     new->lightCounts = 1;
     new->sphereArray = malloc(2 * sizeof(Sphere *));
@@ -86,10 +90,12 @@ static inline World *init_default_world(void)
     }
     Sphere *s1 = new->sphereArray[0];
     Sphere *s2 = new->sphereArray[1];
-    s2->r = 0.5;
+    simd_float4x4 scale_2 = scaling_matrix((simd_float3){0.5, 0.5, 0.5});
+    s2->set_transform(s2, &scale_2);
     s1->m.color = (Color){0.8, 1.0, 0.6};
     s1->m.diffuse = 0.7;
     s1->m.specular = 0.2;
+    s2->m.color = (Color){1, 0, 0};
     new->sphereCounts = 2;
     new->funcTab = &WorldVtable;
     return new;
@@ -115,6 +121,14 @@ static inline void add_light(World *self, Light *light)
     self->lights[self->lightCounts - 1] = malloc(sizeof(Light));
     *(self->lights[self->lightCounts - 1]) = *light;
 }
+static inline void add_sphere(World *self, Sphere *sphere)
+{
+    self->sphereCounts++;
+    self->sphereArray =
+        realloc(self->sphereArray, self->sphereCounts * sizeof(Sphere *));
+    self->sphereArray[self->sphereCounts - 1] = malloc(sizeof(Sphere));
+    *(self->sphereArray[self->sphereCounts - 1]) = *sphere;
+}
 static inline Color color_at(World *self, Ray *r)
 {
     IntersectCollection *xs = self->funcTab->intersect_world(self, r);
@@ -126,10 +140,14 @@ static inline Color color_at(World *self, Ray *r)
     comp->destroy(comp);
     return result;
 }
-static inline PreComp *prepare_computations(const SphereIntersect *intxs,
+static inline PreComp *prepare_computations(SphereIntersect *intxs,
                                             const Ray *r)
 {
     PreComp *comp = malloc(sizeof(PreComp));
+    if (!comp)
+    {
+        fprintf(stderr, "Not enough memory\n");
+    }
     comp->t = intxs->t;
     comp->object = intxs->object;
     comp->point = malloc(sizeof(simd_float4));
@@ -176,6 +194,10 @@ static inline IntersectCollection *intersect_world(World *self, Ray *rayPtr)
         rayPtr->intersects_with_Sphere(rayPtr, self->sphereArray[i]);
     }
     if (rayPtr->xs)
+    {
         sort_xs(rayPtr->xs);
-    return rayPtr->xs;
+        return rayPtr->xs;
+    }
+    else
+        return NULL;
 }
