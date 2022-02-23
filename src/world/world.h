@@ -26,6 +26,7 @@ struct PreComp
     simd_float4 *point;
     simd_float4 *eyeV;
     simd_float4 *normalV;
+    simd_float4 *over_point;
     bool inside;
     void (*destroy)(PreComp *self);
 };
@@ -37,6 +38,7 @@ struct world_vtable
     void (*add_light)(World *self, Light *light);
     void (*add_sphere)(World *self, Sphere *sphere);
     Color (*color_at)(World *self, Ray *r);
+    bool (*is_shadowed)(World *self, simd_float4 *point);
 };
 /* @abstract: Init a default world with a lightsource at (-10, -10, -10)
  * and two spheres at the origin, one is a unit sphere and another one in the
@@ -57,6 +59,9 @@ static inline void add_sphere(World *self, Sphere *sphere);
 /* @abstract: Intersect the world with the given ray, and then return
  * the color at the intersection */
 static inline Color color_at(World *self, Ray *r);
+/* @abstract: Determine whether the point is in shadow */
+static inline bool is_shadowed(World *self, simd_float4 *point);
+
 /* @abstrat: Release memory of a PreComp struct */
 /* @abstract: Init a PreComp struct by an Intersect and a ray */
 /* @params: const SphereIntersect *, const Ray * */
@@ -72,7 +77,8 @@ static inline IntersectCollection *intersect_world(World *self, Ray *rayPtr);
 
 #pragma mark -Implementation
 struct world_vtable WorldVtable = {
-    destroy_world, intersect_world, shade_hit, add_light, add_sphere, color_at,
+    destroy_world, intersect_world, shade_hit,   add_light,
+    add_sphere,    color_at,        is_shadowed,
 };
 static inline World *init_default_world(void)
 {
@@ -140,6 +146,39 @@ static inline Color color_at(World *self, Ray *r)
     comp->destroy(comp);
     return result;
 }
+static inline bool is_shadowed(World *self, simd_float4 *point)
+{
+    for (int i = 0; i < self->lightCounts; ++i) // Support multi light sources
+    {
+        simd_float4 vec = self->lights[i]->pos - *point;
+        float distance = simd_length(vec);
+        simd_float4 direction = simd_normalize(vec);
+        Ray r_to_light = init_Ray(*point, direction);
+        IntersectCollection *xs =
+            self->funcTab->intersect_world(self, &r_to_light);
+        if (!xs)
+        {
+            r_to_light.destroy_XS(&r_to_light);
+            return false;
+        }
+        else
+        {
+            SphereIntersect *hit = hit_Sphere(xs);
+            if (hit && hit->t > distance)
+            {
+                r_to_light.destroy_XS(&r_to_light);
+                return false;
+            }
+            else if (!hit)
+            {
+                r_to_light.destroy_XS(&r_to_light);
+                return false;
+            }
+        }
+        r_to_light.destroy_XS(&r_to_light);
+    }
+    return true;
+}
 static inline PreComp *prepare_computations(SphereIntersect *intxs,
                                             const Ray *r)
 {
@@ -167,6 +206,8 @@ static inline PreComp *prepare_computations(SphereIntersect *intxs,
     {
         comp->inside = false;
     }
+    comp->over_point = malloc(sizeof(simd_float4));
+    *comp->over_point = *comp->point + *comp->normalV * 10 * EPSILON;
     comp->destroy = destroy_precomp;
     return comp;
 }
@@ -175,15 +216,17 @@ static inline void destroy_precomp(PreComp *self)
     free(self->point);
     free(self->eyeV);
     free(self->normalV);
+    free(self->over_point);
     free(self);
 }
 static inline Color shade_hit(World *self, PreComp *comp)
 {
     Color result = {0, 0, 0};
+    bool shadowed = self->funcTab->is_shadowed(self, comp->over_point);
     for (int i = 0; i < self->lightCounts; ++i)
     {
         result += lighting(&comp->object->m, self->lights[i], comp->point,
-                           comp->eyeV, comp->normalV);
+                           comp->eyeV, comp->normalV, shadowed);
     }
     return result;
 }
