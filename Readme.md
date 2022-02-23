@@ -35,3 +35,4 @@ Currently using Apple's `simd` library.
 
 ## Chapter 7 Making a scene
 - `src/world/`: A world and currently necessray methods
+![world](./world_render_example.png)
