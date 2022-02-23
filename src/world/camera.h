@@ -1,6 +1,8 @@
 #pragma once
+#include <canvas/canvas.h>
 #include <canvas/ppm_canvas.h>
 #include <geometry/geometry.h>
+#include <omp.h>
 #include <ray/ray.h>
 #include <stdlib.h>
 #include <world/world.h>
@@ -23,6 +25,7 @@ struct Camera_VTable
     void (*destroy)(Camera *);
     Ray (*ray_for_pixel)(Camera *, int, int);
     PPMCanvas *(*render)(Camera *, World *);
+    Canvas *(*ascii_render)(Camera *, World *);
 };
 /* typedef ends */
 
@@ -47,12 +50,18 @@ static inline Ray ray_for_pixel(Camera *self, int x, int y);
 /* @Returns: PPMCanvas *fig */
 /* @Warning: The returned PPMCanvas *fig is malloced */
 static inline PPMCanvas *render(Camera *self, World *world);
+/* @abstract: Render the given world to terminal buffer */
+/* @params: Camera *self, World *world */
+/* @Returns: Canvas *fig */
+/* @Warning: The returned Canvas *fig is malloced */
+static inline Canvas *renderASCII(Camera *self, World *world);
 
 #pragma mark -Implementations
 struct Camera_VTable camVTable = {
     destroy_Camera,
     ray_for_pixel,
     render,
+    renderASCII,
 };
 static inline Camera *init_Camera(int hSize, int vSize, float fovAngle)
 {
@@ -117,6 +126,25 @@ static inline PPMCanvas *render(Camera *self, World *world)
             Ray r = ray_for_pixel(self, x, y);
             Color color = color_at(world, &r);
             fig->writePixel(fig, x, y, color);
+            r.destroy_XS(&r);
+        }
+    }
+    return fig;
+}
+static inline Canvas *renderASCII(Camera *self, World *world)
+{
+    Canvas *fig = init_Canvas(2 * self->hSize, self->vSize);
+// clang-format off
+    #pragma omp parallel for
+    // clang-format on
+    for (int y = 0; y < self->vSize; ++y)
+    {
+        for (int x = 0; x < self->hSize; ++x)
+        {
+            Ray r = ray_for_pixel(self, x, y);
+            Color color = color_at(world, &r);
+            fig->writeLumaPixel(fig, 2 * x, y, color);
+            fig->writeLumaPixel(fig, 2 * x + 1, y, color);
             r.destroy_XS(&r);
         }
     }
