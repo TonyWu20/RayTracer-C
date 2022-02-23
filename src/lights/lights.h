@@ -2,6 +2,7 @@
 #include <colors/colors.h>
 #include <materials/materials.h>
 #include <simd/simd.h>
+#include <stdbool.h>
 #include <stdio.h>
 
 typedef struct Light Light;
@@ -24,7 +25,7 @@ static inline Light point_light(simd_float4 pos, Color intensity);
  */
 static inline Color lighting(const Material *m, Light *light,
                              simd_float4 *point, simd_float4 *eyeV,
-                             simd_float4 *normalV);
+                             simd_float4 *normalV, bool shadowed);
 
 #pragma mark -Implementations
 static inline Light point_light(simd_float4 pos, Color intensity)
@@ -37,7 +38,7 @@ static inline Light point_light(simd_float4 pos, Color intensity)
 
 static inline Color lighting(const Material *m, Light *light,
                              simd_float4 *point, simd_float4 *eyeV,
-                             simd_float4 *normalV)
+                             simd_float4 *normalV, bool shadowed)
 {
     /* Combine the surface color with the light's intensity */
     Color eff_color = m->color * light->intensity;
@@ -45,6 +46,9 @@ static inline Color lighting(const Material *m, Light *light,
     simd_float4 lightV = simd_normalize(light->pos - *point);
     /* Compute the ambient contribution */
     Color ambient = m->ambient * eff_color;
+    /* If in shadow, return only the ambient color */
+    if (shadowed == true)
+        return ambient;
     /* light_dot_normal represents the cosine of the angle
      * between the light vector and the normal vector.
      * < 0 means the light is on the other side of the surface
