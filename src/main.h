@@ -5,6 +5,7 @@
 #include <geometry/geometry.h>
 #include <lights/lights.h>
 #include <materials/materials.h>
+#include <omp.h>
 #include <ray/ray.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,6 +13,8 @@
 #include <world/camera.h>
 #include <world/world.h>
 #define PI (atan(1) * 4)
+#define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+#define PBWIDTH 40
 
 /* @abstract: Quick print of a float4 vector */
 static inline void print_float4(simd_float4 vec4);
@@ -19,6 +22,9 @@ static inline void print_float4(simd_float4 vec4);
 static inline void print_float3(simd_float3 vec3);
 /* @abstract: Pretty print of a float4x4 matrix */
 static inline void print_float4x4(simd_float4x4 mat);
+/* @abstract: Print progress */
+static inline void printProgress(int cur, int total, double percentage,
+                                 char *name);
 
 #pragma mark -Implementation
 static inline void print_float4(simd_float4 vec4)
@@ -42,4 +48,15 @@ static inline void print_float4x4(simd_float4x4 mat)
         }
     }
     printf("-------------------------------------------------\n");
+}
+static inline void printProgress(int cur, int total, double percentage,
+                                 char *name)
+{
+    int val = (int)(percentage * 100);
+    int lpad = (int)(percentage * PBWIDTH);
+    int rpad = PBWIDTH - lpad;
+    int strPad = 32 - strlen(name);
+    printf("\e[32m \r%.*s%*s %d/%d %3d%% [%.*s%*s]\e[m", 32, name, strPad, "",
+           cur, total, val, lpad, PBSTR, rpad, "");
+    fflush(stdout);
 }
