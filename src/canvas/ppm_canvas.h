@@ -12,6 +12,7 @@ struct PPMCanvas
     int pixelNums;
     float *pixels;
     void (*writePixel)(PPMCanvas *self, int x, int y, Color pixelColor);
+    Color (*pixel_at)(PPMCanvas *self, int x, int y);
     void (*printCanvas)(PPMCanvas *self, char *fileName);
     void (*destroy)(PPMCanvas *self);
 };
@@ -20,7 +21,9 @@ struct PPMCanvas
 static inline PPMCanvas *init_PPMCanvas(int width, int height);
 /* @abstract: Write pixel to PPMCanvas buffer */
 static inline void writePixel(PPMCanvas *self, int x, int y, Color pixelColor);
-/* @abstract: Write pixel determined by the luma value to Canvas buffer */
+/* @abstract: Returns the color at (x, y) */
+static inline Color pixel_at(PPMCanvas *self, int x, int y);
+/* @abstract: Export .ppm */
 static inline void printPPMCanvas(PPMCanvas *self, char *fileName);
 /* @abstract: Release the memory held by the Canvas object*/
 static inline void destroyPPMCanvas(PPMCanvas *self);
@@ -40,6 +43,7 @@ static inline PPMCanvas *init_PPMCanvas(int width, int height)
     /*     cPtr->pixels[i] = calloc(3, sizeof(float)); */
     /* } */
     cPtr->writePixel = writePixel;
+    cPtr->pixel_at = pixel_at;
     cPtr->printCanvas = printPPMCanvas;
     cPtr->destroy = destroyPPMCanvas;
     return cPtr;
@@ -58,6 +62,22 @@ static inline void writePixel(PPMCanvas *self, int x, int y, Color pixelColor)
     {
         self->pixels[idx * 3 + i] = pixelColor[i];
     }
+}
+static inline Color pixel_at(PPMCanvas *self, int x, int y)
+{
+    if (x < 0 || x >= self->width || y < 0 || y >= self->height)
+    {
+        printf("ERROR: Out of canvas!\n");
+        return (Color){0, 0, 0};
+    }
+    int Y = self->height - 1 - y;
+    int idx = Y * self->width + x;
+    Color result;
+    for (int i = 0; i < 3; ++i)
+    {
+        result[i] = self->pixels[idx * 3 + i];
+    }
+    return result;
 }
 
 static inline void printPPMCanvas(PPMCanvas *self, char *fileName)
