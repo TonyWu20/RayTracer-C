@@ -23,6 +23,10 @@ int intersects_with_Sphere(Ray *ray, const Sphere *s)
         ray->xs->intersects =
             realloc(ray->xs->intersects, sizeof(SphereIntersect *) * (*count));
         ray->xs->intersects[*count - 1] = malloc(sizeof(SphereIntersect));
+        if (!ray->xs->intersects[*count - 1])
+        {
+            fprintf(stderr, "Not enough memory\n");
+        }
         ray->xs->intersects[*count - 1]->t = (i == 0) ? t1 : t2;
         ray->xs->intersects[*count - 1]->pos =
             (i == 0) ? currPosition(ray, t1) : currPosition(ray, t2);
