@@ -1,15 +1,15 @@
 #pragma once
 #include <geometry/sphere.h>
-#include <simd/simd.h>
 #include <stdlib.h>
+#include <types/types.h>
 typedef struct IntersectCollection IntersectCollection;
 typedef struct SphereIntersection SphereIntersect;
 typedef struct Ray Ray;
 
 struct Ray
 {
-    simd_float4 origin;
-    simd_float4 directionVec;
+    Point origin;
+    Vector directionVec;
     IntersectCollection *xs;
     int (*intersects_with_Sphere)(Ray *self, const Sphere *s);
     Ray (*transform)(Ray *self, simd_float4x4 *transformMatrix);
@@ -19,7 +19,7 @@ struct Ray
 struct SphereIntersection
 {
     float t;
-    simd_float4 pos;
+    Point pos;
     const Sphere *object;
 };
 
@@ -31,10 +31,10 @@ struct IntersectCollection
 };
 
 /* @abstract: Init a Ray object */
-static inline Ray init_Ray(simd_float4 origin, simd_float4 directionVec);
+static inline Ray init_Ray(Point origin, Vector directionVec);
 /* @abstract: Get the current position of the Ray after time */
 static inline void destroy_XS(Ray *self);
-static inline simd_float4 currPosition(const Ray *ray, float distance);
+static inline Point currPosition(const Ray *ray, float distance);
 /* @abstract: Returns a pointer of pointers of Intersect struct
  * @params: (const Ray *) ray, (const Sphere *) s, (int *) returnSize
  * @MallocUsed: Free must be called to the (Intersect **)pptr and (Intersect
@@ -42,8 +42,7 @@ static inline simd_float4 currPosition(const Ray *ray, float distance);
  */
 static inline IntersectCollection *init_intxnCollection(void);
 /* @abstract: Apply a transformation to the Ray, returns a new Ray */
-static inline Ray apply_transformation(Ray *self,
-                                       simd_float4x4 *transformMatrix);
+static inline Ray apply_transformation(Ray *self, Matrix_4x4 *transformMatrix);
 /* @abstrat: Sort the IntersectCollection in ascending order */
 static inline void sort_xs(IntersectCollection *self);
 /* @abstract: Release memory occupied by IntersectCollection */
@@ -57,7 +56,7 @@ int intersects_with_Sphere(Ray *self, const Sphere *s);
  */
 SphereIntersect *hit_Sphere(IntersectCollection *intersects);
 
-static inline Ray init_Ray(simd_float4 origin, simd_float4 directionVec)
+static inline Ray init_Ray(Point origin, Vector directionVec)
 {
     Ray result;
     result.origin = origin;
@@ -73,15 +72,14 @@ static inline void destroy_XS(Ray *self)
     if (self->xs)
         self->xs->destroy(self->xs);
 }
-static inline simd_float4 currPosition(const Ray *ray, float distance)
+static inline Point currPosition(const Ray *ray, float distance)
 {
     return ray->directionVec * distance + ray->origin;
 }
 
-static inline Ray apply_transformation(Ray *self,
-                                       simd_float4x4 *transformMatrix)
+static inline Ray apply_transformation(Ray *self, Matrix_4x4 *transformMatrix)
 {
-    simd_float4x4 rayTransform = simd_inverse(*transformMatrix);
+    Matrix_4x4 rayTransform = simd_inverse(*transformMatrix);
     Ray new = init_Ray(self->origin, self->directionVec);
     new.origin = simd_mul(rayTransform, new.origin);
     new.directionVec = simd_mul(rayTransform, new.directionVec);
