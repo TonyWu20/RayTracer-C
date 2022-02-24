@@ -10,7 +10,7 @@ void test_ray_transform()
     r.destroy_XS(&r);
     print_float4(s->shape->local_ray.origin);
     print_float4(s->shape->local_ray.directionVec);
-    s->shape->funcTab->destroy(s);
+    s->funcTab->destroy(s);
     Sphere *s2 = create_Sphere(make_Point(0, 0, 0), 1);
     Matrix_4x4 transform = translation_matrix(5, 0, 0);
     s2->funcTab->set_transform(s2, &transform);

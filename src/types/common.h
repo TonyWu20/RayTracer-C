@@ -3,5 +3,7 @@
 #include <geometry/type_common.h>
 typedef struct Ray Ray;
 #endif
-#pragma once
-const float EPSILON = 0.00001;
+#ifndef EPSILON_DEFINED
+#define EPSILON_DEFINED
+extern const float EPSILON;
+#endif
