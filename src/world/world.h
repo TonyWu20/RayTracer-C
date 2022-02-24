@@ -4,6 +4,7 @@
 #include <lights/lights.h>
 #include <ray/ray.h>
 #include <stdbool.h>
+#include <types/types.h>
 
 /* typedef section */
 typedef struct world World;
@@ -23,10 +24,10 @@ struct PreComp
 {
     float t;
     const Sphere *object;
-    simd_float4 *point;
-    simd_float4 *eyeV;
-    simd_float4 *normalV;
-    simd_float4 *over_point;
+    Point *point;
+    Vector *eyeV;
+    Vector *normalV;
+    Point *over_point;
     bool inside;
     void (*destroy)(PreComp *self);
 };
@@ -85,18 +86,20 @@ static inline World *init_default_world(void)
     World *new = malloc(sizeof(World));
     new->lights = malloc(sizeof(Light *));
     Light *light = malloc(sizeof(Light));
-    *light = point_light((simd_float4){-10, 10, -10, 1}, (Color){1, 1, 1});
+    /* *light = point_light((simd_float4){-10, 10, -10, 1}, (Color){1, 1, 1});
+     */
+    *light = point_light(make_Point(-10, 10, -10), (Color){1, 1, 1});
     new->lights[0] = light;
     new->lightCounts = 1;
     new->sphereArray = malloc(2 * sizeof(Sphere *));
     for (int i = 0; i < 2; ++i)
     {
         new->sphereArray[i] = malloc(sizeof(Sphere));
-        *(new->sphereArray[i]) = create_Sphere((simd_float4){0, 0, 0, 1}, 1);
+        *(new->sphereArray[i]) = create_Sphere((Point){0, 0, 0, 1}, 1);
     }
     Sphere *s1 = new->sphereArray[0];
     Sphere *s2 = new->sphereArray[1];
-    simd_float4x4 scale_2 = scaling_matrix((simd_float3){0.5, 0.5, 0.5});
+    simd_float4x4 scale_2 = scaling_matrix(0.5, 0.5, 0.5);
     s2->set_transform(s2, &scale_2);
     s1->m.color = (Color){0.8, 1.0, 0.6};
     s1->m.diffuse = 0.7;
@@ -150,9 +153,9 @@ static inline bool is_shadowed(World *self, simd_float4 *point)
 {
     for (int i = 0; i < self->lightCounts; ++i) // Support multi light sources
     {
-        simd_float4 vec = self->lights[i]->pos - *point;
+        Vector vec = self->lights[i]->pos - *point;
         float distance = simd_length(vec);
-        simd_float4 direction = simd_normalize(vec);
+        Vector direction = simd_normalize(vec);
         Ray r_to_light = init_Ray(*point, direction);
         IntersectCollection *xs =
             self->funcTab->intersect_world(self, &r_to_light);
@@ -189,13 +192,12 @@ static inline PreComp *prepare_computations(SphereIntersect *intxs,
     }
     comp->t = intxs->t;
     comp->object = intxs->object;
-    comp->point = malloc(sizeof(simd_float4));
+    comp->point = malloc(sizeof(Point));
     *comp->point = currPosition(r, intxs->t);
-    comp->eyeV = malloc(sizeof(simd_float4));
+    comp->eyeV = malloc(sizeof(Vector));
     *comp->eyeV = simd_make_float4(simd_make_float3(-r->directionVec), 0);
-    comp->normalV = malloc(sizeof(simd_float4));
-    *comp->normalV =
-        surface_normal_at(intxs->object, (simd_float4 *)comp->point);
+    comp->normalV = malloc(sizeof(Vector));
+    *comp->normalV = surface_normal_at(intxs->object, (Vector *)comp->point);
     if (simd_dot(*comp->normalV, *comp->eyeV) < 0)
     {
         comp->inside = true;
@@ -206,7 +208,7 @@ static inline PreComp *prepare_computations(SphereIntersect *intxs,
     {
         comp->inside = false;
     }
-    comp->over_point = malloc(sizeof(simd_float4));
+    comp->over_point = malloc(sizeof(Point));
     *comp->over_point = *comp->point + *comp->normalV * 10 * EPSILON;
     comp->destroy = destroy_precomp;
     return comp;
