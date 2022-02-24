@@ -1,34 +1,33 @@
 #pragma once
 #include <colors/colors.h>
 #include <materials/materials.h>
-#include <simd/simd.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <types/types.h>
 
 typedef struct Light Light;
 
 struct Light
 {
     Color intensity;
-    simd_float4 pos;
+    Point pos;
 };
 
 /* @abstract: Create a Light that has a position and intensity
  * @params: simd_float4 pos, Color intensity
  * @returns: a Light struct
  */
-static inline Light point_light(simd_float4 pos, Color intensity);
+static inline Light point_light(Point pos, Color intensity);
 
 /* @abstract: Shade the object by the material, light, point being illuminated,
  * eye and normal vectors from the Phong reflection model
  * @returns: a Color type
  */
-static inline Color lighting(const Material *m, Light *light,
-                             simd_float4 *point, simd_float4 *eyeV,
-                             simd_float4 *normalV, bool shadowed);
+static inline Color lighting(const Material *m, Light *light, Point *point,
+                             Vector *eyeV, Vector *normalV, bool shadowed);
 
 #pragma mark -Implementations
-static inline Light point_light(simd_float4 pos, Color intensity)
+static inline Light point_light(Point pos, Color intensity)
 {
     Light result;
     result.pos = pos;
@@ -36,14 +35,13 @@ static inline Light point_light(simd_float4 pos, Color intensity)
     return result;
 }
 
-static inline Color lighting(const Material *m, Light *light,
-                             simd_float4 *point, simd_float4 *eyeV,
-                             simd_float4 *normalV, bool shadowed)
+static inline Color lighting(const Material *m, Light *light, Point *point,
+                             Vector *eyeV, Vector *normalV, bool shadowed)
 {
     /* Combine the surface color with the light's intensity */
     Color eff_color = m->color * light->intensity;
     /* Find the direction to the light source */
-    simd_float4 lightV = simd_normalize(light->pos - *point);
+    Vector lightV = simd_normalize(light->pos - *point);
     /* Compute the ambient contribution */
     Color ambient = m->ambient * eff_color;
     /* If in shadow, return only the ambient color */
@@ -69,7 +67,7 @@ static inline Color lighting(const Material *m, Light *light,
          * between the reflection vector and the eye vector.
          * A negative number means the light reflects away from the eye.
          */
-        simd_float4 reflectV = simd_reflect(
+        Vector reflectV = simd_reflect(
             -lightV,
             *normalV); // The normalV from surface_normal_at is normalized
         float reflect_dot_eye = simd_dot(reflectV, *eyeV);
