@@ -1,6 +1,6 @@
 #pragma once
 #include <colors/colors.h>
-#include <simd/simd.h>
+#include <types/types.h>
 
 typedef struct Material Material;
 struct Material
@@ -32,7 +32,12 @@ static inline Material create_material(Color color, float ambient,
 }
 static inline Material defaultMaterial(void)
 {
+    Color color = {1, 1, 1};
+    float ambient = 0.1;
+    float diffuse = 0.9;
+    float specular = 0.9;
+    float shininess = 200;
     Material result =
-        create_material((simd_float3){1, 1, 1}, 0.1, 0.9, 0.9, 200);
+        create_material(color, ambient, diffuse, specular, shininess);
     return result;
 }

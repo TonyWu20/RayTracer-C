@@ -95,16 +95,16 @@ static inline World *init_default_world(void)
     for (int i = 0; i < 2; ++i)
     {
         new->sphereArray[i] = malloc(sizeof(Sphere));
-        *(new->sphereArray[i]) = create_Sphere((Point){0, 0, 0, 1}, 1);
+        (new->sphereArray[i]) = create_Sphere((Point){0, 0, 0, 1}, 1);
     }
     Sphere *s1 = new->sphereArray[0];
     Sphere *s2 = new->sphereArray[1];
     simd_float4x4 scale_2 = scaling_matrix(0.5, 0.5, 0.5);
-    s2->set_transform(s2, &scale_2);
-    s1->m.color = (Color){0.8, 1.0, 0.6};
-    s1->m.diffuse = 0.7;
-    s1->m.specular = 0.2;
-    s2->m.color = (Color){1, 0, 0};
+    s2->shape->funcTab->set_transform(s2, &scale_2);
+    s1->shape->material->color = (Color){0.8, 1.0, 0.6};
+    s1->shape->material->diffuse = 0.7;
+    s1->shape->material->specular = 0.2;
+    s2->shape->material->color = (Color){1, 0, 0};
     new->sphereCounts = 2;
     new->funcTab = &WorldVtable;
     return new;
@@ -197,7 +197,8 @@ static inline PreComp *prepare_computations(SphereIntersect *intxs,
     comp->eyeV = malloc(sizeof(Vector));
     *comp->eyeV = simd_make_float4(simd_make_float3(-r->directionVec), 0);
     comp->normalV = malloc(sizeof(Vector));
-    *comp->normalV = surface_normal_at(intxs->object, (Vector *)comp->point);
+    *comp->normalV = comp->object->shape->funcTab->surface_normal_at(
+        intxs->object, (Vector *)comp->point);
     if (simd_dot(*comp->normalV, *comp->eyeV) < 0)
     {
         comp->inside = true;
@@ -227,8 +228,8 @@ static inline Color shade_hit(World *self, PreComp *comp)
     bool shadowed = self->funcTab->is_shadowed(self, comp->over_point);
     for (int i = 0; i < self->lightCounts; ++i)
     {
-        result += lighting(&comp->object->m, self->lights[i], comp->point,
-                           comp->eyeV, comp->normalV, shadowed);
+        result += lighting(comp->object->shape->material, self->lights[i],
+                           comp->point, comp->eyeV, comp->normalV, shadowed);
     }
     return result;
 }
@@ -236,7 +237,8 @@ static inline IntersectCollection *intersect_world(World *self, Ray *rayPtr)
 {
     for (int i = 0; i < self->sphereCounts; ++i)
     {
-        rayPtr->intersects_with_Sphere(rayPtr, self->sphereArray[i]);
+        self->sphereArray[i]->shape->funcTab->intersect_with_ray(
+            self->sphereArray[i], rayPtr);
     }
     if (rayPtr->xs)
     {

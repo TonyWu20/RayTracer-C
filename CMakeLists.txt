@@ -17,25 +17,28 @@ option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 # Test 2
 # add_executable(clock_test ./src/clock_test.c)
 # Test 3
-# add_library(ray ./src/ray/ray.c)
+add_library(ray ./src/ray/ray.c)
+add_library(geometry ./src/geometry/sphere.c)
 # add_executable(ray_sphere ./src/ray_test.c)
 # target_link_libraries(ray_sphere ray -lncurses)
 # Test 4
-add_executable(normal_test ./src/normal_test.c)
-target_link_libraries(normal_test ray)
-# Test lighting
-add_executable(light_test ./src/light_test.c)
-target_link_libraries(light_test ray)
-# Test world
-add_executable(world_test ./src/world_test.c)
-target_link_libraries(world_test ray)
-# Test view
-add_executable(view_test ./src/view_test.c)
-target_link_libraries(view_test ray)
-# Test render world 1
-add_executable(render_world_test ./src/render_world_test.c)
-target_compile_options(render_world_test PRIVATE -I/opt/homebrew/include -I"${PROJECT_BINARY_DIR}"/src -Xpreprocessor -fopenmp)
-target_link_libraries(render_world_test ray -L/opt/homebrew/lib -Xpreprocessor -fopenmp -lomp)
-# Test shadow
-add_executable(shadow_test ./src/shadow_test.c)
-target_link_libraries(shadow_test ray)
+# add_executable(normal_test ./src/normal_test.c)
+# target_link_libraries(normal_test ray)
+# # Test lighting
+# # add_executable(light_test ./src/light_test.c)
+# # target_link_libraries(light_test ray)
+# # Test world
+# add_executable(world_test ./src/world_test.c)
+# target_link_libraries(world_test ray)
+# # Test view
+# add_executable(view_test ./src/view_test.c)
+# target_link_libraries(view_test ray)
+# # Test render world 1
+# add_executable(render_world_test ./src/render_world_test.c)
+# target_compile_options(render_world_test PRIVATE -I/opt/homebrew/include -I"${PROJECT_BINARY_DIR}"/src -Xpreprocessor -fopenmp)
+# target_link_libraries(render_world_test ray -L/opt/homebrew/lib -Xpreprocessor -fopenmp -lomp)
+# # Test shadow
+# add_executable(shadow_test ./src/shadow_test.c)
+# target_link_libraries(shadow_test ray)
+add_executable(shape_test ./src/shape_test.c)
+target_link_libraries(shape_test geometry ray)

@@ -3,6 +3,7 @@
  * conveniece
  */
 #pragma once
+#pragma clang diagnostic ignored "-Wunused-function"
 #include <simd/simd.h>
 #define OVERLOAD __attribute__((__overloadable__))
 #define FUNC OVERLOAD

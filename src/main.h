@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <types/common.h>
+#include <types/types.h>
 #include <world/camera.h>
 #include <world/world.h>
 #define PI (atan(1) * 4)
