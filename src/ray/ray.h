@@ -6,7 +6,7 @@
 #include <types/common.h>
 #include <types/types.h>
 typedef struct IntersectCollection IntersectCollection;
-typedef struct SphereIntersection SphereIntersect;
+typedef struct Intersection Intersect;
 
 struct Ray
 {
@@ -17,16 +17,16 @@ struct Ray
     void (*destroy_XS)(Ray *self);
 };
 
-struct SphereIntersection
+struct Intersection
 {
     float t;
-    Point pos;
-    const Sphere *object;
+    const void *object;
+    int ShapeType;
 };
 
 struct IntersectCollection
 {
-    SphereIntersect **intersects;
+    Intersect **intersects;
     int intersects_counts;
     void (*destroy)(IntersectCollection *self);
 };
@@ -42,16 +42,19 @@ static inline Point currPosition(const Ray *ray, float distance);
  * *)ptr
  */
 static inline IntersectCollection *init_intxnCollection(void);
+/* @abstract: Create an Intersect * by t, object and ShapeType */
+static inline Intersect *mark_intersect(float t, const void *object,
+                                        int ShapeType);
 /* @abstract: Apply a transformation to the Ray, returns a new Ray */
 static inline Ray apply_transformation(Ray *self, Matrix_4x4 *transformMatrix);
 /* @abstrat: Sort the IntersectCollection in ascending order */
 static inline void sort_xs(IntersectCollection *self);
 /* @abstract: Release memory occupied by IntersectCollection */
 static inline void destroy_intxnCollection(IntersectCollection *self);
-/* @abstract: Returns the SphereIntersect with the smallest nonnegative
+/* @abstract: Returns the Intersect with the smallest nonnegative
  * t value
  */
-SphereIntersect *hit_Sphere(IntersectCollection *intersects);
+static inline Intersect *hit_Object(IntersectCollection *collection);
 
 static inline Ray init_Ray(Point origin, Vector directionVec)
 {
@@ -75,7 +78,15 @@ static inline Point currPosition(const Ray *ray, float distance)
 {
     return ray->directionVec * distance + ray->origin;
 }
-
+static inline Intersect *mark_intersect(float t, const void *object,
+                                        int ShapeType)
+{
+    Intersect *result = malloc(sizeof(Intersect));
+    result->t = t;
+    result->object = object;
+    result->ShapeType = ShapeType;
+    return result;
+}
 static inline Ray apply_transformation(Ray *self, Matrix_4x4 *transformMatrix)
 {
     Matrix_4x4 rayTransform = simd_inverse(*transformMatrix);
@@ -108,10 +119,10 @@ static inline void destroy_intxnCollection(IntersectCollection *self)
     free(self);
 }
 
-static int SphereIntersectCmp(const void *a, const void *b)
+static int IntersectCmp(const void *a, const void *b)
 {
-    SphereIntersect *aPtr = *(SphereIntersect **)a;
-    SphereIntersect *bPtr = *(SphereIntersect **)b;
+    Intersect *aPtr = *(Intersect **)a;
+    Intersect *bPtr = *(Intersect **)b;
     if (aPtr->t - bPtr->t > 0)
         return 1;
     else if (fabsf(aPtr->t - bPtr->t) < 0.0001)
@@ -121,7 +132,21 @@ static int SphereIntersectCmp(const void *a, const void *b)
 }
 static inline void sort_xs(IntersectCollection *self)
 {
-    qsort(self->intersects, self->intersects_counts, sizeof(SphereIntersect *),
-          SphereIntersectCmp);
+    qsort(self->intersects, self->intersects_counts, sizeof(Intersect *),
+          IntersectCmp);
+}
+static inline Intersect *hit_Object(IntersectCollection *collection)
+{
+    sort_xs(collection);
+    Intersect *result;
+    for (int i = 0; i < collection->intersects_counts; ++i)
+    {
+        if (collection->intersects[i]->t > 0)
+        {
+            result = collection->intersects[i];
+            return result;
+        }
+    }
+    return NULL;
 }
 #endif
