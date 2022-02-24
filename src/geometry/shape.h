@@ -7,7 +7,14 @@
 #include <types/common.h>
 #include <types/types.h>
 #include <ray/ray.h>
+#include <stdio.h>
 // clang-format on
+enum
+{
+    SPHERE,
+    PLANE,
+} SHAPE_TYPE;
+
 struct Shape
 {
     Material *material;
@@ -31,9 +38,10 @@ static inline void Shape_intersect_with_ray(Shape *self, Ray *ray);
 /* @abstract: Base function for set_transform */
 static inline void Shape_set_transform(Shape *self, Matrix_4x4 *transform);
 /* @abstract: Base function for surface_normal_at */
-static inline Vector Shape_surface_normal_at(Shape *self, Point *worldPoint);
+static inline Vector Shape_local_to_world_normal(Shape *self,
+                                                 Vector *localNormal);
 /* @abstract: Release memory of the Shape struct */
-static inline void destroy_self(Shape *self);
+static inline void Shape_destroy(Shape *self);
 
 #pragma mark -Implementation
 static inline Shape *create_Shape(void)
@@ -57,12 +65,23 @@ static inline void Shape_set_transform(Shape *self, Matrix_4x4 *transform)
     self->funcTab->set_transform((void *)self, transform);
 }
 
-static inline Vector Shape_surface_normal_at(Shape *self, Point *worldPoint)
+/* static inline Vector Shape_surface_normal_at(Shape *self, Point *worldPoint)
+ */
+/* { */
+/* return self->funcTab->surface_normal_at((void *)self, worldPoint); */
+/* } */
+static inline Vector Shape_local_to_world_normal(Shape *self,
+                                                 Vector *localNormal)
 {
-    return self->funcTab->surface_normal_at((void *)self, worldPoint);
+    Vector worldNormal =
+        simd_mul(simd_transpose(simd_inverse(*self->transform)), *localNormal);
+    worldNormal.w = 0;
+    return simd_normalize(worldNormal);
 }
-static inline void destroy_shape(Shape *self)
+static inline void Shape_destroy(Shape *self)
 {
-    self->funcTab->destroy((void *)self);
+    free(self->material);
+    free(self->transform);
+    free(self);
 }
 #endif

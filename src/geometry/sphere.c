@@ -43,14 +43,9 @@ void Sphere_intersect_with_ray(void *SphereSelf, Ray *r)
     {
         (*count)++;
         r->xs->intersects =
-            realloc(r->xs->intersects, sizeof(SphereIntersect *) * (*count));
-        r->xs->intersects[*count - 1] = malloc(sizeof(SphereIntersect));
-        if (!r->xs->intersects[*count - 1])
-        {
-            fprintf(stderr, "Not enough memery for SphereIntersect\n");
-        }
-        r->xs->intersects[*count - 1]->t = (i == 0) ? t1 : t2;
-        r->xs->intersects[*count - 1]->object = self;
+            realloc(r->xs->intersects, sizeof(Intersect *) * (*count));
+        r->xs->intersects[*count - 1] =
+            mark_intersect((i == 0) ? t1 : t2, self, SPHERE);
     }
 }
 void Sphere_set_transform(void *selfPtr, Matrix_4x4 *transformMatPtr)
@@ -70,16 +65,12 @@ Vector Sphere_surface_normal_at(const void *selfPtr, Point *worldPoint)
     Point localPoint =
         simd_mul(simd_inverse(*self->shape->transform), *worldPoint);
     Vector localNormal = localPoint - self->origin;
-    Vector worldNormal = simd_mul(
-        simd_transpose(simd_inverse(*self->shape->transform)), localNormal);
-    worldNormal.w = 0;
-    return simd_normalize(worldNormal);
+    Vector worldNormal = Shape_local_to_world_normal(self->shape, &localNormal);
+    return worldNormal;
 }
 void Sphere_destroy(void *selfPtr)
 {
     Sphere *self = (Sphere *)selfPtr;
-    free(self->shape->material);  // malloced in create_Shape()
-    free(self->shape->transform); // malloced in create_Shape()
-    free(self->shape);            // malloced in create_Shape()
-    free(self);                   // malloced in create_Sphere()
+    Shape_destroy(self->shape);
+    free(self); // malloced in create_Sphere()
 }

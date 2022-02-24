@@ -2,4 +2,5 @@
 #define GEOM_COMMON_INCLUDED
 typedef struct Shape Shape;
 typedef struct Sphere Sphere;
+typedef struct Plane Plane;
 #endif
