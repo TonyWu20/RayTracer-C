@@ -1,17 +1,18 @@
 #pragma once
-#include <geometry/sphere.h>
+#ifndef RAY_H_INCLUDED
+#define RAY_H_INCLUDED
+#include <geometry/type_common.h>
 #include <stdlib.h>
+#include <types/common.h>
 #include <types/types.h>
 typedef struct IntersectCollection IntersectCollection;
 typedef struct SphereIntersection SphereIntersect;
-typedef struct Ray Ray;
 
 struct Ray
 {
     Point origin;
     Vector directionVec;
     IntersectCollection *xs;
-    int (*intersects_with_Sphere)(Ray *self, const Sphere *s);
     Ray (*transform)(Ray *self, simd_float4x4 *transformMatrix);
     void (*destroy_XS)(Ray *self);
 };
@@ -47,10 +48,6 @@ static inline Ray apply_transformation(Ray *self, Matrix_4x4 *transformMatrix);
 static inline void sort_xs(IntersectCollection *self);
 /* @abstract: Release memory occupied by IntersectCollection */
 static inline void destroy_intxnCollection(IntersectCollection *self);
-/* @abstract: Compute intersects with the given sphere and add to
- * collection if valid
- */
-int intersects_with_Sphere(Ray *self, const Sphere *s);
 /* @abstract: Returns the SphereIntersect with the smallest nonnegative
  * t value
  */
@@ -62,7 +59,6 @@ static inline Ray init_Ray(Point origin, Vector directionVec)
     result.origin = origin;
     result.directionVec = directionVec;
     result.xs = NULL;
-    result.intersects_with_Sphere = intersects_with_Sphere;
     result.transform = apply_transformation;
     result.destroy_XS = destroy_XS;
     return result;
@@ -70,7 +66,10 @@ static inline Ray init_Ray(Point origin, Vector directionVec)
 static inline void destroy_XS(Ray *self)
 {
     if (self->xs)
+    {
         self->xs->destroy(self->xs);
+        self->xs = NULL;
+    }
 }
 static inline Point currPosition(const Ray *ray, float distance)
 {
@@ -125,3 +124,4 @@ static inline void sort_xs(IntersectCollection *self)
     qsort(self->intersects, self->intersects_counts, sizeof(SphereIntersect *),
           SphereIntersectCmp);
 }
+#endif
