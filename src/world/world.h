@@ -23,7 +23,8 @@ struct world
 struct PreComp
 {
     float t;
-    const Sphere *object;
+    const void *object;
+    Shape *shape;
     Point *point;
     Vector *eyeV;
     Vector *normalV;
@@ -65,10 +66,9 @@ static inline bool is_shadowed(World *self, simd_float4 *point);
 
 /* @abstrat: Release memory of a PreComp struct */
 /* @abstract: Init a PreComp struct by an Intersect and a ray */
-/* @params: const SphereIntersect *, const Ray * */
+/* @params: const Intersect *, const Ray * */
 /* @Warning: Free after use! */
-static inline PreComp *prepare_computations(SphereIntersect *intxs,
-                                            const Ray *r);
+static inline PreComp *prepare_computations(Intersect *intxs, const Ray *r);
 static inline void destroy_precomp(PreComp *self);
 /* @abstrac: Returns the IntersectCollection ptr of a ray intersects with
  * the world.
@@ -94,7 +94,6 @@ static inline World *init_default_world(void)
     new->sphereArray = malloc(2 * sizeof(Sphere *));
     for (int i = 0; i < 2; ++i)
     {
-        new->sphereArray[i] = malloc(sizeof(Sphere));
         (new->sphereArray[i]) = create_Sphere((Point){0, 0, 0, 1}, 1);
     }
     Sphere *s1 = new->sphereArray[0];
@@ -143,7 +142,7 @@ static inline Color color_at(World *self, Ray *r)
     IntersectCollection *xs = self->funcTab->intersect_world(self, r);
     if (!xs)
         return (Color){0, 0, 0};
-    SphereIntersect *hit = hit_Sphere(xs);
+    Intersect *hit = hit_Object(xs);
     PreComp *comp = prepare_computations(hit, r);
     Color result = shade_hit(self, comp);
     comp->destroy(comp);
@@ -166,7 +165,7 @@ static inline bool is_shadowed(World *self, simd_float4 *point)
         }
         else
         {
-            SphereIntersect *hit = hit_Sphere(xs);
+            Intersect *hit = hit_Object(xs);
             if (hit && hit->t > distance)
             {
                 r_to_light.destroy_XS(&r_to_light);
@@ -182,8 +181,7 @@ static inline bool is_shadowed(World *self, simd_float4 *point)
     }
     return true;
 }
-static inline PreComp *prepare_computations(SphereIntersect *intxs,
-                                            const Ray *r)
+static inline PreComp *prepare_computations(Intersect *intxs, const Ray *r)
 {
     PreComp *comp = malloc(sizeof(PreComp));
     if (!comp)
@@ -197,8 +195,27 @@ static inline PreComp *prepare_computations(SphereIntersect *intxs,
     comp->eyeV = malloc(sizeof(Vector));
     *comp->eyeV = simd_make_float4(simd_make_float3(-r->directionVec), 0);
     comp->normalV = malloc(sizeof(Vector));
-    *comp->normalV = comp->object->shape->funcTab->surface_normal_at(
-        intxs->object, (Vector *)comp->point);
+    Vector normalV;
+    switch (intxs->ShapeType)
+    {
+    case (SPHERE):
+        normalV = ((Sphere *)comp->object)
+                      ->funcTab->surface_normal_at((Sphere *)comp->object,
+                                                   comp->point);
+        comp->shape = ((Sphere *)comp->object)->shape;
+        break;
+    case (PLANE):
+        normalV = ((Plane *)comp->object)
+                      ->funcTab->surface_normal_at((Plane *)comp->object,
+                                                   comp->point);
+        comp->shape = ((Plane *)comp->object)->shape;
+        break;
+    default:
+        normalV = (Vector){0, 0, 0, 0};
+        comp->shape = NULL;
+        break;
+    }
+    *comp->normalV = normalV;
     if (simd_dot(*comp->normalV, *comp->eyeV) < 0)
     {
         comp->inside = true;
@@ -228,8 +245,8 @@ static inline Color shade_hit(World *self, PreComp *comp)
     bool shadowed = self->funcTab->is_shadowed(self, comp->over_point);
     for (int i = 0; i < self->lightCounts; ++i)
     {
-        result += lighting(comp->object->shape->material, self->lights[i],
-                           comp->point, comp->eyeV, comp->normalV, shadowed);
+        result += lighting(comp->shape->material, self->lights[i], comp->point,
+                           comp->eyeV, comp->normalV, shadowed);
     }
     return result;
 }
