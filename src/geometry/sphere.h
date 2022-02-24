@@ -1,21 +1,11 @@
 #pragma once
 #include <geometry/shape.h>
-#include <geometry/type_common.h>
 #include <materials/materials.h>
 #include <ray/ray.h>
 #include <stdio.h>
+#include <types/common.h>
 #include <types/types.h>
 
-/* struct Sphere */
-/* { */
-/*     simd_float4 origin; // (x, y, z, w) */
-/*     float r;            // radius */
-/*     simd_float4x4 transform; */
-/*     Material m; */
-/*     simd_float4 (*surface_normal_at)(const Sphere *self, */
-/*                                      simd_float4 *worldPoint); */
-/*     void (*set_transform)(Sphere *self, simd_float4x4 *transformMat); */
-/* }; */
 struct Sphere
 {
     Shape *shape;
