@@ -5,6 +5,7 @@
 #include <omp.h>
 #include <ray/ray.h>
 #include <stdlib.h>
+#include <types/types.h>
 #include <world/world.h>
 /* typedef */
 typedef struct camara Camera;
@@ -16,7 +17,7 @@ struct camara
     float half_width;
     float half_height;
     float pixelSize;
-    simd_float4x4 *transform;
+    Matrix_4x4 *transform;
     struct Camera_VTable *funcTab;
 };
 
@@ -69,7 +70,7 @@ static inline Camera *init_Camera(int hSize, int vSize, float fovAngle)
     cam->hSize = hSize;
     cam->vSize = vSize;
     cam->fovAngle = fovAngle;
-    cam->transform = malloc(sizeof(simd_float4x4));
+    cam->transform = malloc(sizeof(Matrix_4x4));
     *cam->transform = matrix_identity_float4x4;
     cam->funcTab = &camVTable;
     compute_pixelSize(cam); // assign half_width/height and pixelSize
@@ -109,11 +110,11 @@ static inline Ray ray_for_pixel(Camera *self, int x, int y)
     // using the camera matrix, transform the canvas point and the origin,
     // then compute the ray's direction vector.
     // remember the canvas is at z = -1;
-    simd_float4 pixel = simd_mul(simd_inverse(*self->transform),
-                                 (simd_float4){world_x, world_y, -1, 1});
-    simd_float4 origin =
-        simd_mul(simd_inverse(*self->transform), (simd_float4){0, 0, 0, 1});
-    simd_float4 directionVec = simd_normalize(pixel - origin);
+    Point pixel = simd_mul(simd_inverse(*self->transform),
+                           (Point){world_x, world_y, -1, 1});
+    Point origin =
+        simd_mul(simd_inverse(*self->transform), (Point){0, 0, 0, 1});
+    Vector directionVec = simd_normalize(pixel - origin);
     return init_Ray(origin, directionVec);
 }
 static inline PPMCanvas *render(Camera *self, World *world)
@@ -134,7 +135,7 @@ static inline PPMCanvas *render(Camera *self, World *world)
 static inline Canvas *renderASCII(Camera *self, World *world)
 {
     Canvas *fig = init_Canvas(2 * self->hSize, self->vSize);
-// clang-format off
+    // clang-format off
     #pragma omp parallel for
     // clang-format on
     for (int y = 0; y < self->vSize; ++y)
