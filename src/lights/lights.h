@@ -1,5 +1,6 @@
 #pragma once
 #include <colors/colors.h>
+#include <geometry/patterns.h>
 #include <materials/materials.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -23,8 +24,9 @@ static inline Light point_light(Point pos, Color intensity);
  * eye and normal vectors from the Phong reflection model
  * @returns: a Color type
  */
-static inline Color lighting(const Material *m, Light *light, Point *point,
-                             Vector *eyeV, Vector *normalV, bool shadowed);
+static inline Color lighting(const Material *m, const Shape *obj, Light *light,
+                             Point *point, Vector *eyeV, Vector *normalV,
+                             bool shadowed);
 
 #pragma mark -Implementations
 static inline Light point_light(Point pos, Color intensity)
@@ -35,11 +37,22 @@ static inline Light point_light(Point pos, Color intensity)
     return result;
 }
 
-static inline Color lighting(const Material *m, Light *light, Point *point,
-                             Vector *eyeV, Vector *normalV, bool shadowed)
+static inline Color lighting(const Material *m, const Shape *obj, Light *light,
+                             Point *point, Vector *eyeV, Vector *normalV,
+                             bool shadowed)
 {
     /* Combine the surface color with the light's intensity */
-    Color eff_color = m->color * light->intensity;
+    Color color;
+    if (m->pattern)
+    {
+        color = m->pattern->funcTab->pattern_at_object(m->pattern, (Shape *)obj,
+                                                       point);
+    }
+    else
+    {
+        color = m->color;
+    }
+    Color eff_color = color * light->intensity;
     /* Find the direction to the light source */
     Vector lightV = simd_normalize(light->pos - *point);
     /* Compute the ambient contribution */

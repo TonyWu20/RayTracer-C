@@ -27,6 +27,7 @@ struct PreComp
     Point *point;
     Vector *eyeV;
     Vector *normalV;
+    Vector *reflectV;
     Point *over_point;
     bool inside;
     void (*destroy)(PreComp *self);
@@ -35,10 +36,10 @@ struct world_vtable
 {
     void (*destroy)(World *self);
     IntersectCollection *(*intersect_world)(World *self, Ray *rayPtr);
-    Color (*shade_hit)(World *self, PreComp *comp);
+    Color (*shade_hit)(World *self, PreComp *comp, int to_reflect);
     void (*add_light)(World *self, Light *light);
     void (*add_object)(World *self, Shape *shapeObj);
-    Color (*color_at)(World *self, Ray *r);
+    Color (*color_at)(World *self, Ray *r, int to_reflect);
     bool (*is_shadowed)(World *self, simd_float4 *point);
 };
 /* @abstract: Init a default world with a lightsource at (-10, -10, -10)
@@ -50,7 +51,7 @@ static inline World *init_default_world(void);
 static inline void destroy_world(World *self);
 /* @abstract: Shading an intersection */
 /* @params: World *self, PreComp *comp */
-static inline Color shade_hit(World *self, PreComp *comp);
+static inline Color shade_hit(World *self, PreComp *comp, int to_reflect);
 /* @abstract: Add a light source to the world, update lightCounts by one */
 /* @params: World *self, Light *light */
 static inline void add_light(World *self, Light *light);
@@ -59,7 +60,9 @@ static inline void add_light(World *self, Light *light);
 static inline void add_shape(World *self, Shape *shapeObj);
 /* @abstract: Intersect the world with the given ray, and then return
  * the color at the intersection */
-static inline Color color_at(World *self, Ray *r);
+static inline Color color_at(World *self, Ray *r, int to_reflect);
+/* @abstratc: Reflected color */
+static inline Color reflected_color(World *self, PreComp *comp, int to_reflect);
 /* @abstract: Determine whether the point is in shadow */
 static inline bool is_shadowed(World *self, simd_float4 *point);
 
@@ -135,7 +138,7 @@ static inline void add_shape(World *self, Shape *shapeObj)
         realloc(self->shapeArray, self->shapeCounts * sizeof(Shape *));
     self->shapeArray[self->shapeCounts - 1] = shapeObj;
 }
-static inline Color color_at(World *self, Ray *r)
+static inline Color color_at(World *self, Ray *r, int to_reflect)
 {
     IntersectCollection *xs = self->funcTab->intersect_world(self, r);
     if (!xs)
@@ -146,9 +149,19 @@ static inline Color color_at(World *self, Ray *r)
         return (Color){0, 0, 0};
     }
     PreComp *comp = prepare_computations(hit, r);
-    Color result = shade_hit(self, comp);
+    Color result = shade_hit(self, comp, to_reflect);
     comp->destroy(comp);
     return result;
+}
+static inline Color reflected_color(World *self, PreComp *comp, int to_reflect)
+{
+    if (to_reflect <= 0)
+        return (Color){0, 0, 0};
+    if (comp->object->material->reflective == 0.0)
+        return (Color){0, 0, 0};
+    Ray reflect_ray = init_Ray(*comp->over_point, *comp->reflectV);
+    Color color = color_at(self, &reflect_ray, to_reflect - 1);
+    return color * comp->object->material->reflective;
 }
 static inline bool is_shadowed(World *self, simd_float4 *point)
 {
@@ -199,6 +212,7 @@ static inline PreComp *prepare_computations(Intersect *intxs, const Ray *r)
     comp->normalV = malloc(sizeof(Vector));
     *comp->normalV =
         comp->object->funcTab->surface_normal_at(comp->object, comp->point);
+    // The returned surface normal is already normalized
     if (simd_dot(*comp->normalV, *comp->eyeV) < 0)
     {
         comp->inside = true;
@@ -211,6 +225,8 @@ static inline PreComp *prepare_computations(Intersect *intxs, const Ray *r)
     }
     comp->over_point = malloc(sizeof(Point));
     *comp->over_point = *comp->point + *comp->normalV * 10 * EPSILON;
+    comp->reflectV = malloc(sizeof(Vector));
+    *comp->reflectV = simd_reflect(r->directionVec, *comp->normalV);
     comp->destroy = destroy_precomp;
     return comp;
 }
@@ -220,18 +236,21 @@ static inline void destroy_precomp(PreComp *self)
     free(self->eyeV);
     free(self->normalV);
     free(self->over_point);
+    free(self->reflectV);
     free(self);
 }
-static inline Color shade_hit(World *self, PreComp *comp)
+static inline Color shade_hit(World *self, PreComp *comp, int to_reflect)
 {
     Color result = {0, 0, 0};
     bool shadowed = self->funcTab->is_shadowed(self, comp->over_point);
     for (int i = 0; i < self->lightCounts; ++i)
     {
-        result += lighting(comp->object->material, self->lights[i], comp->point,
-                           comp->eyeV, comp->normalV, shadowed);
+        result +=
+            lighting(comp->object->material, comp->object, self->lights[i],
+                     comp->point, comp->eyeV, comp->normalV, shadowed);
     }
-    return result;
+    Color reflected = reflected_color(self, comp, to_reflect);
+    return result + reflected;
 }
 static inline IntersectCollection *intersect_world(World *self, Ray *rayPtr)
 {

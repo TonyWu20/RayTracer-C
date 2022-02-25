@@ -3,7 +3,7 @@
 #include <materials/materials.h>
 #include <ray/ray.h>
 #include <stdio.h>
-#include <types/common.h>
+/* #include <types/common.h> */
 #include <types/types.h>
 
 struct Sphere

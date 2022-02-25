@@ -124,7 +124,7 @@ static inline PPMCanvas *render(Camera *self, World *world)
         for (int x = 0; x < self->hSize; ++x)
         {
             Ray r = ray_for_pixel(self, x, y);
-            Color color = color_at(world, &r);
+            Color color = color_at(world, &r, 4);
             fig->writePixel(fig, x, y, color);
             r.destroy_XS(&r);
         }
@@ -141,7 +141,7 @@ static inline Canvas *renderASCII(Camera *self, World *world)
         for (int x = 0; x < self->hSize; ++x)
         {
             Ray r = ray_for_pixel(self, x, y);
-            Color color = color_at(world, &r);
+            Color color = color_at(world, &r, 4);
             fig->writeLumaPixel(fig, 2 * x, y, color);
             fig->writeLumaPixel(fig, 2 * x + 1, y, color);
             r.destroy_XS(&r);

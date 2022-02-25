@@ -1,4 +1,3 @@
-#pragma once
 #include <geometry/sphere.h>
 
 struct Shape_funcTab Sphere_funcTab = {

@@ -1,10 +1,9 @@
 #pragma once
 /* #include <geometry/sphere.h> */
-#ifndef SHAPE_H_INCLUDED
-#define SHAPE_H_INCLUDED
 // clang-format off
 #include <materials/materials.h>
 #include <types/common.h>
+#include <geometry/patterns.h>
 #include <types/types.h>
 #include <ray/ray.h>
 #include <stdio.h>
@@ -90,4 +89,3 @@ static inline void Shape_destroy(Shape *self)
     free(self->material);
     free(self->transform);
 }
-#endif
