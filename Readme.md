@@ -41,3 +41,21 @@ Currently using Apple's `simd` library.
 
 Implemented shadow rendering.
 Add ascii true color output in `src/canvas/canvas.h`
+
+## Chapter 9 Planes
+
+- Refactor `src/geometry` to support OOP-style shape data struct.
+- Implemented Plane type.
+
+## Chapter 10 Patterns
+
+- `src/geometry/pattern` stripe, gradient, ring and checkboard.
+- Use EPSILON to avoid `acne`. (From float point error)
+
+## Chapter 11 Reflections
+
+- Adjust previous code to support reflection calculations and reflection color
+  determination.
+- Avoid infinite recursion.
+
+![reflect](./reflect_example.png)
