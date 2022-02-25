@@ -4,18 +4,16 @@
 #include <ray/ray.h>
 struct Plane
 {
-    Shape *shape;
-    int ShapeType;
+    Shape shape;
     Ray local_ray;
-    struct Shape_funcTab *funcTab;
 };
 
 /* @abstract: Initialize a plane, extending in XZ plane infinitely */
 Plane *create_Plane(void);
 /* @abstract: Calculate intersect with a plane */
 /* update IntersectCollection *xs in *r */
-void Plane_intersect_with_ray(void *PlaneSelf, Ray *r);
+void Plane_intersect_with_ray(Shape *PlaneSelf, Ray *r);
 /* @abstract: Apply a transform to the plane */
-void Plane_set_transform(void *PlanePtr, Matrix_4x4 *transformMatPtr);
-Vector Plane_surface_normal_at(const void *PlaneSelf, Point *worldPoint);
-void Plane_destroy(void *selfPtr);
+void Plane_set_transform(Shape *PlanePtr, Matrix_4x4 *transformMatPtr);
+Vector Plane_surface_normal_at(const Shape *PlaneSelf, Point *worldPoint);
+void Plane_destroy(Shape *selfPtr);

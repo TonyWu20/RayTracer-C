@@ -2,7 +2,6 @@
 #include <canvas/canvas.h>
 #include <canvas/ppm_canvas.h>
 #include <geometry/geometry.h>
-#include <omp.h>
 #include <ray/ray.h>
 #include <stdlib.h>
 #include <types/types.h>
@@ -136,7 +135,6 @@ static inline Canvas *renderASCII(Camera *self, World *world)
 {
     Canvas *fig = init_Canvas(2 * self->hSize, self->vSize);
     // clang-format off
-    #pragma omp parallel for
     // clang-format on
     for (int y = 0; y < self->vSize; ++y)
     {

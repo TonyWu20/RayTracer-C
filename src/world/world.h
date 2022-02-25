@@ -15,16 +15,15 @@ struct world
 {
     Light **lights;
     int lightCounts;
-    Sphere **sphereArray; // Pointer to arrays of Sphere pointer
-    int sphereCounts;
+    Shape **shapeArray; // Pointer to arrays of Sphere pointer
+    int shapeCounts;
     struct world_vtable *funcTab;
 };
 
 struct PreComp
 {
     float t;
-    const void *object;
-    Shape *shape;
+    const Shape *object;
     Point *point;
     Vector *eyeV;
     Vector *normalV;
@@ -38,7 +37,7 @@ struct world_vtable
     IntersectCollection *(*intersect_world)(World *self, Ray *rayPtr);
     Color (*shade_hit)(World *self, PreComp *comp);
     void (*add_light)(World *self, Light *light);
-    void (*add_sphere)(World *self, Sphere *sphere);
+    void (*add_object)(World *self, Shape *shapeObj);
     Color (*color_at)(World *self, Ray *r);
     bool (*is_shadowed)(World *self, simd_float4 *point);
 };
@@ -57,7 +56,7 @@ static inline Color shade_hit(World *self, PreComp *comp);
 static inline void add_light(World *self, Light *light);
 /* @abstract: Add a sphere to the world, update sphereCounts by one */
 /* @params: World *self, Sphere *sphere */
-static inline void add_sphere(World *self, Sphere *sphere);
+static inline void add_shape(World *self, Shape *shapeObj);
 /* @abstract: Intersect the world with the given ray, and then return
  * the color at the intersection */
 static inline Color color_at(World *self, Ray *r);
@@ -79,7 +78,7 @@ static inline IntersectCollection *intersect_world(World *self, Ray *rayPtr);
 #pragma mark -Implementation
 struct world_vtable WorldVtable = {
     destroy_world, intersect_world, shade_hit,   add_light,
-    add_sphere,    color_at,        is_shadowed,
+    add_shape,     color_at,        is_shadowed,
 };
 static inline World *init_default_world(void)
 {
@@ -91,20 +90,20 @@ static inline World *init_default_world(void)
     *light = point_light(make_Point(-10, 10, -10), (Color){1, 1, 1});
     new->lights[0] = light;
     new->lightCounts = 1;
-    new->sphereArray = malloc(2 * sizeof(Sphere *));
+    new->shapeArray = malloc(2 * sizeof(Sphere *));
     for (int i = 0; i < 2; ++i)
     {
-        (new->sphereArray[i]) = create_Sphere((Point){0, 0, 0, 1}, 1);
+        (new->shapeArray[i]) = (Shape *)create_Sphere((Point){0, 0, 0, 1}, 1);
     }
-    Sphere *s1 = new->sphereArray[0];
-    Sphere *s2 = new->sphereArray[1];
+    Shape *s1 = new->shapeArray[0];
+    Shape *s2 = new->shapeArray[1];
     simd_float4x4 scale_2 = scaling_matrix(0.5, 0.5, 0.5);
-    s2->shape->funcTab->set_transform(s2, &scale_2);
-    s1->shape->material->color = (Color){0.8, 1.0, 0.6};
-    s1->shape->material->diffuse = 0.7;
-    s1->shape->material->specular = 0.2;
-    s2->shape->material->color = (Color){1, 0, 0};
-    new->sphereCounts = 2;
+    s2->funcTab->set_transform(s2, &scale_2);
+    s1->material->color = (Color){0.8, 1.0, 0.6};
+    s1->material->diffuse = 0.7;
+    s1->material->specular = 0.2;
+    s2->material->color = (Color){1, 0, 0};
+    new->shapeCounts = 2;
     new->funcTab = &WorldVtable;
     return new;
 }
@@ -115,11 +114,11 @@ static inline void destroy_world(World *self)
         free(self->lights[i]);
     }
     free(self->lights);
-    for (int i = 0; i < self->sphereCounts; ++i)
+    for (int i = 0; i < self->shapeCounts; ++i)
     {
-        free(self->sphereArray[i]);
+        self->shapeArray[i]->funcTab->destroy(self->shapeArray[i]);
     }
-    free(self->sphereArray);
+    free(self->shapeArray);
     free(self);
 }
 static inline void add_light(World *self, Light *light)
@@ -129,13 +128,12 @@ static inline void add_light(World *self, Light *light)
     self->lights[self->lightCounts - 1] = malloc(sizeof(Light));
     *(self->lights[self->lightCounts - 1]) = *light;
 }
-static inline void add_sphere(World *self, Sphere *sphere)
+static inline void add_shape(World *self, Shape *shapeObj)
 {
-    self->sphereCounts++;
-    self->sphereArray =
-        realloc(self->sphereArray, self->sphereCounts * sizeof(Sphere *));
-    self->sphereArray[self->sphereCounts - 1] = malloc(sizeof(Sphere));
-    *(self->sphereArray[self->sphereCounts - 1]) = *sphere;
+    self->shapeCounts++;
+    self->shapeArray =
+        realloc(self->shapeArray, self->shapeCounts * sizeof(Shape *));
+    self->shapeArray[self->shapeCounts - 1] = shapeObj;
 }
 static inline Color color_at(World *self, Ray *r)
 {
@@ -143,6 +141,10 @@ static inline Color color_at(World *self, Ray *r)
     if (!xs)
         return (Color){0, 0, 0};
     Intersect *hit = hit_Object(xs);
+    if (!hit)
+    {
+        return (Color){0, 0, 0};
+    }
     PreComp *comp = prepare_computations(hit, r);
     Color result = shade_hit(self, comp);
     comp->destroy(comp);
@@ -195,27 +197,8 @@ static inline PreComp *prepare_computations(Intersect *intxs, const Ray *r)
     comp->eyeV = malloc(sizeof(Vector));
     *comp->eyeV = simd_make_float4(simd_make_float3(-r->directionVec), 0);
     comp->normalV = malloc(sizeof(Vector));
-    Vector normalV;
-    switch (intxs->ShapeType)
-    {
-    case (SPHERE):
-        normalV = ((Sphere *)comp->object)
-                      ->funcTab->surface_normal_at((Sphere *)comp->object,
-                                                   comp->point);
-        comp->shape = ((Sphere *)comp->object)->shape;
-        break;
-    case (PLANE):
-        normalV = ((Plane *)comp->object)
-                      ->funcTab->surface_normal_at((Plane *)comp->object,
-                                                   comp->point);
-        comp->shape = ((Plane *)comp->object)->shape;
-        break;
-    default:
-        normalV = (Vector){0, 0, 0, 0};
-        comp->shape = NULL;
-        break;
-    }
-    *comp->normalV = normalV;
+    *comp->normalV =
+        comp->object->funcTab->surface_normal_at(comp->object, comp->point);
     if (simd_dot(*comp->normalV, *comp->eyeV) < 0)
     {
         comp->inside = true;
@@ -245,17 +228,16 @@ static inline Color shade_hit(World *self, PreComp *comp)
     bool shadowed = self->funcTab->is_shadowed(self, comp->over_point);
     for (int i = 0; i < self->lightCounts; ++i)
     {
-        result += lighting(comp->shape->material, self->lights[i], comp->point,
+        result += lighting(comp->object->material, self->lights[i], comp->point,
                            comp->eyeV, comp->normalV, shadowed);
     }
     return result;
 }
 static inline IntersectCollection *intersect_world(World *self, Ray *rayPtr)
 {
-    for (int i = 0; i < self->sphereCounts; ++i)
+    for (int i = 0; i < self->shapeCounts; ++i)
     {
-        self->sphereArray[i]->shape->funcTab->intersect_with_ray(
-            self->sphereArray[i], rayPtr);
+        Shape_intersect_with_ray(self->shapeArray[i], rayPtr);
     }
     if (rayPtr->xs)
     {

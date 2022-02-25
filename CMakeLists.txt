@@ -19,6 +19,7 @@ option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 # Test 3
 # add_library(ray ./src/ray/ray.c)
 add_library(geometry ./src/geometry/sphere.c ./src/geometry/plane.c ./src/geometry/geometry.c)
+# add_library(geometry ./src/geometry/sphere.c  ./src/geometry/geometry.c)
 # add_executable(ray_sphere ./src/ray_test.c)
 # target_link_libraries(ray_sphere ray -lncurses)
 # Test 4
@@ -34,9 +35,10 @@ add_library(geometry ./src/geometry/sphere.c ./src/geometry/plane.c ./src/geomet
 # add_executable(view_test ./src/view_test.c)
 # target_link_libraries(view_test ray)
 # # Test render world 1
-# add_executable(render_world_test ./src/render_world_test.c)
-# target_compile_options(render_world_test PRIVATE -I/opt/homebrew/include -I"${PROJECT_BINARY_DIR}"/src -Xpreprocessor -fopenmp)
-# target_link_libraries(render_world_test ray -L/opt/homebrew/lib -Xpreprocessor -fopenmp -lomp)
+add_executable(render_world_test ./src/render_world_test.c)
+target_compile_options(render_world_test PRIVATE -I/opt/homebrew/include -I"${PROJECT_BINARY_DIR}"/src -Xpreprocessor -fopenmp)
+target_link_libraries(render_world_test geometry -L/opt/homebrew/lib -Xpreprocessor -fopenmp -lomp -lncurses)
+# target_link_libraries(render_world_test geometry)
 # # Test shadow
 # add_executable(shadow_test ./src/shadow_test.c)
 # target_link_libraries(shadow_test ray)

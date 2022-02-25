@@ -11,18 +11,14 @@ Plane *create_Plane(void)
 {
     Plane *self = malloc(sizeof(Plane));
     self->shape = create_Shape();
-    self->shape->funcTab = &plane_funcTab;
-    self->funcTab = &plane_funcTab;
-    self->ShapeType = PLANE;
+    self->shape.funcTab = &plane_funcTab;
     return self;
 }
-void Plane_intersect_with_ray(void *PlanePtr, Ray *ray)
+void Plane_intersect_with_ray(Shape *PlanePtr, Ray *ray)
 {
     Plane *self = (Plane *)PlanePtr;
-    Shape *shape = self->shape;
-    Ray local_ray = ray->transform(ray, shape->transform);
-    shape->local_ray = local_ray;
-    if (fabs(local_ray.directionVec.y) < EPSILON)
+    Shape *shape = (Shape *)self;
+    if (fabs(shape->local_ray.directionVec.y) < 10*EPSILON)
     {
         return;
     }
@@ -30,27 +26,27 @@ void Plane_intersect_with_ray(void *PlanePtr, Ray *ray)
         ray->xs = init_intxnCollection();
     int *count = &(ray->xs->intersects_counts);
     (*count)++;
-    float t = -ray->origin.y / ray->directionVec.y;
+    float t = -(shape->local_ray.origin.y) / shape->local_ray.directionVec.y;
     ray->xs->intersects =
         realloc(ray->xs->intersects, sizeof(Intersect *) * (*count));
-    ray->xs->intersects[*count - 1] = mark_intersect(t, self, PLANE);
+    ray->xs->intersects[*count - 1] = mark_intersect(t, (Shape *)self);
     return;
 }
-void Plane_set_transform(void *PlanePtr, Matrix_4x4 *transformMatPtr)
+void Plane_set_transform(Shape *PlanePtr, Matrix_4x4 *transformMatPtr)
 {
     Plane *self = (Plane *)PlanePtr;
-    *self->shape->transform =
-        simd_mul(*transformMatPtr, *self->shape->transform);
+    *self->shape.transform =
+        simd_mul(*transformMatPtr, *self->shape.transform);
 }
-Vector Plane_surface_normal_at(const void *PlanePtr, Point *worldPoint)
+Vector Plane_surface_normal_at(const Shape *PlanePtr, Point *worldPoint)
 {
     Plane *self = (Plane *)PlanePtr;
     Vector localNormal = make_Vector(0, 1, 0); // A XZ-plane
-    return Shape_local_to_world_normal(self->shape, &localNormal);
+    return Shape_local_to_world_normal(&self->shape, &localNormal);
 }
-void Plane_destroy(void *PlanePtr)
+void Plane_destroy(Shape *PlanePtr)
 {
     Plane *self = (Plane *)PlanePtr;
-    Shape_destroy(self->shape);
+    Shape_destroy(&self->shape);
     free(self);
 }

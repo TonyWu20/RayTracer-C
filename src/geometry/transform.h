@@ -58,7 +58,7 @@ static inline Matrix_4x4 shearing_matrix(float xy, float xz, float yx, float yz,
 }
 static inline Matrix_4x4 rotation_matrix(float angle, VectorXYZ axis)
 {
-    return simd_matrix4x4(simd_quaternion(angle, axis));
+    return simd_matrix4x4(simd_quaternion(angle, simd_normalize(axis)));
 }
 static inline Matrix_4x4 view_transform(Point *from, Point *to,
                                         Vector *upVector)

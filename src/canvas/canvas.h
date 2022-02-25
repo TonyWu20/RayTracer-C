@@ -1,7 +1,7 @@
 #pragma once
 #include <colors/colors.h>
-#include <stdio.h>
 #include <simd/simd.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 typedef struct _Canvas Canvas;
@@ -39,7 +39,7 @@ static inline Canvas *init_Canvas(int width, int height)
     self->pixels = malloc(width * height * sizeof(char *));
     for (int i = 0; i < self->pixelNums; ++i)
     {
-        self->pixels[i]= malloc(sizeof(char)*48);
+        self->pixels[i] = malloc(sizeof(char) * 48);
         snprintf(self->pixels[i], 2, " ");
     }
     self->writeLumaPixel = writeToCanvas_luma;
@@ -59,10 +59,13 @@ static inline void writeToCanvas_luma(Canvas *self, int x, int y, Color pixel)
     pixel = 255 * pixel;
     int Y = self->height - 1 - y;
     char format[] = "\x1b[38;2;%d;%d;%dm%c\x1b[0m";
-    int sLen = 1 + snprintf(NULL, 0, format, (int)pixel.x, (int)pixel.y, (int)pixel.z, symbol);
+    int sLen = 1 + snprintf(NULL, 0, format, (int)pixel.x, (int)pixel.y,
+                            (int)pixel.z, symbol);
     int idx = Y * self->width + x;
-    snprintf(self->pixels[idx], sLen, format, (int)pixel.x, (int)pixel.y, (int)pixel.z, symbol);
-    /* self->pixels[Y * self->width + x] = ".,-~:;=!*#$@"[luma > 0 ? luma : 0]; */
+    snprintf(self->pixels[idx], sLen, format, (int)pixel.x, (int)pixel.y,
+             (int)pixel.z, symbol);
+    /* self->pixels[Y * self->width + x] = ".,-~:;=!*#$@"[luma > 0 ? luma : 0];
+     */
 }
 static inline void clearCanvas(Canvas *self)
 {
@@ -80,7 +83,8 @@ static inline void destroyCanvas(Canvas *self)
 }
 static inline void printCanvas(Canvas *self)
 {
-    printf("\x1b[2J""\x1b[H"); // Clear screen
+    printf("\x1b[2J");
+    printf("\x1b[H"); // Clear screen
     for (int i = 0; i < self->pixelNums; ++i)
     {
         printf("%s", (i % self->width) ? self->pixels[i] : "\n");

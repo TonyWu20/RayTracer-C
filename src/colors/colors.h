@@ -1,5 +1,6 @@
 #pragma once
 #include <types/types.h>
+#include <stdio.h>
 
 static inline int lumaForColor(Color result)
 {
@@ -15,7 +16,7 @@ static inline char lumaToChar(Color result)
     result = simd_clamp(result, 0, 1);
     float lum = simd_dot(luminanceFactor, result);
     char grayscale[] = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/"
-                       "\\|()1{}[]?-_+~<>i!lI;:,\"^`'";
+                       "\\|()1{}[]?-_+~<>i!lI;:,\"^`' ";
     int lumN = 68 * lum;
     return grayscale[68 - lumN];
 }

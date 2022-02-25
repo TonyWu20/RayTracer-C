@@ -20,8 +20,7 @@ struct Ray
 struct Intersection
 {
     float t;
-    const void *object;
-    int ShapeType;
+    const Shape *object;
 };
 
 struct IntersectCollection
@@ -43,8 +42,7 @@ static inline Point currPosition(const Ray *ray, float distance);
  */
 static inline IntersectCollection *init_intxnCollection(void);
 /* @abstract: Create an Intersect * by t, object and ShapeType */
-static inline Intersect *mark_intersect(float t, const void *object,
-                                        int ShapeType);
+static inline Intersect *mark_intersect(float t, const Shape *object);
 /* @abstract: Apply a transformation to the Ray, returns a new Ray */
 static inline Ray apply_transformation(Ray *self, Matrix_4x4 *transformMatrix);
 /* @abstrat: Sort the IntersectCollection in ascending order */
@@ -76,15 +74,15 @@ static inline void destroy_XS(Ray *self)
 }
 static inline Point currPosition(const Ray *ray, float distance)
 {
-    return ray->directionVec * distance + ray->origin;
+    Point curr = ray->directionVec * distance + ray->origin;
+    curr.w = 1;
+    return curr;
 }
-static inline Intersect *mark_intersect(float t, const void *object,
-                                        int ShapeType)
+static inline Intersect *mark_intersect(float t, const Shape *object)
 {
     Intersect *result = malloc(sizeof(Intersect));
     result->t = t;
     result->object = object;
-    result->ShapeType = ShapeType;
     return result;
 }
 static inline Ray apply_transformation(Ray *self, Matrix_4x4 *transformMatrix)
@@ -141,7 +139,7 @@ static inline Intersect *hit_Object(IntersectCollection *collection)
     Intersect *result;
     for (int i = 0; i < collection->intersects_counts; ++i)
     {
-        if (collection->intersects[i]->t > 0)
+        if (collection->intersects[i]->t >= 0)
         {
             result = collection->intersects[i];
             return result;
