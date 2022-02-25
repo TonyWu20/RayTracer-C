@@ -9,6 +9,8 @@ struct Pattern
 {
     Matrix_4x4 *transform;
     struct Pattern_funcTab *funcTab;
+    Color color_a;
+    Color color_b;
 };
 
 struct Pattern_funcTab
@@ -30,18 +32,16 @@ void Pattern_destroy(Pattern *self);
 
 /* Specific */
 /* @abstract: Pattren stripe */
-struct Stripe
-{
-    Pattern base;
-    Color color_a;
-    Color color_b;
-};
 /* @abstract: Define a stripe of Color a and b*/
-FUNC Stripe *stripe_pattern(Color a, Color b);
+FUNC Pattern *stripe_pattern(Color a, Color b);
 /* @abstract: default black and white stripe */
-FUNC Stripe *stripe_pattern(void);
+FUNC Pattern *stripe_pattern(void);
+/* @abstract: Define a gradient color pattern from Color a to Color b */
+FUNC Pattern *gradient_pattern(Color a, Color b);
 /* @abstract: Determine the color of points at stripe pattern space */
 Color stripe_at(Pattern *self, Point *objPoint);
+/* @abstract: Determine the color at gradient pattern space */
+Color gradient_at(Pattern *self, Point *objPoint);
 
 #pragma mark -Implementations
 
