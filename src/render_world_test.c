@@ -12,11 +12,14 @@ static Plane *floor_create(void)
     /* base->funcTab->set_transform(base, &rotate_to_xy); */
     base->material->color = (Color){0.2, 0.2, 0.2};
     base->material->specular = 0.8;
-    base->material->ambient = 0.9;
-    base->material->reflective = .05;
+    base->material->ambient = 0.1;
+    base->material->diffuse = 0.1;
+    base->material->reflective = .9;
+    base->material->refractive_index = 1.33;
+    base->material->transparency = 1.0;
     Matrix_4x4 scale = scaling_matrix(.5, .5, .5);
-    base->material->pattern = (Pattern *)ring_pattern((Color){.4, .08, 0.235},
-                                                      (Color){0.1, 0.2, 0.25});
+    base->material->pattern =
+        (Pattern *)checker_pattern((Color){0, 0, 0}, (Color){1, 1, 1});
     base->material->pattern->funcTab->set_transform(base->material->pattern, 1,
                                                     &scale);
     return floor;
@@ -26,14 +29,12 @@ static Plane *ceiling_create(void)
     Plane *floor = create_Plane();
     /* simd_float4x4 rotate_to_xy = rotation_matrix(PI/2, (VectorXYZ){1,0,0});
      */
-    Matrix_4x4 translate = translation_matrix(0, 11, 0);
+    Matrix_4x4 translate = translation_matrix(0, 10.5, 0);
     Shape *base = (Shape *)floor;
     base->funcTab->set_transform(base, &translate);
-    base->material->color = (Color){1, 0.9, 0.9};
+    base->material->color = (Color){198.0 / 255, 230.0 / 255, 251.0 / 255};
     base->material->specular = 0.1;
-    base->material->reflective = 0.3;
-    base->material->pattern =
-        (Pattern *)checker_pattern((Color){1, 1, 1}, (Color){0, 0, 0});
+    base->material->reflective = 0.0;
     return floor;
 }
 static Plane *wall_create(float around_z, float tz)
@@ -47,7 +48,9 @@ static Plane *wall_create(float around_z, float tz)
     Shape_set_transform(base, 3, &rotate_around_z, &rotate_to_xy, &translate);
     base->material->color = (Color){1, 0.9, 0.9};
     base->material->specular = 0.1;
-    base->material->pattern = (Pattern *)stripe_pattern();
+    base->material->transparency = 1;
+    base->material->reflective = 0.9;
+    base->material->refractive_index = 1.5;
     return wall;
 }
 static Plane *left_wall_create(void)
@@ -58,15 +61,17 @@ static Plane *left_wall_create(void)
     Matrix_4x4 rotate_around_z = rotation_matrix(PI / 3, (VectorXYZ){0, 0, 1});
     Matrix_4x4 translate = translation_matrix(0, 0, 10);
     Shape_set_transform(base, 3, &rotate_around_z, &rotate_to_xy, &translate);
-    base->material->color = (Color){1, 0.9, 0.9};
-    base->material->specular = 0.1;
-    base->material->diffuse = 0.1;
-    base->material->reflective = 0.3;
-    base->material->pattern = (Pattern *)ring_pattern((Color){0.86, 0.62, 0.08},
-                                                      (Color){0.2, .2, .2});
-    Pattern *pat = base->material->pattern;
-    Matrix_4x4 scale_pat = scaling_matrix(.5, 1, .5);
-    pat->funcTab->set_transform(pat, 1, &scale_pat);
+    base->material->color = (Color){0.3, 0.05, 0.1};
+    base->material->specular = 1;
+    base->material->diffuse = 0.5;
+    base->material->ambient = 0.5;
+    base->material->transparency = 1;
+    base->material->refractive_index = 1.5;
+    base->material->reflective = 0.9;
+    base->material->pattern =
+        (Pattern *)checker_pattern((Color){1, 1, 1}, (Color){0, 0.0, 0.0});
+    Matrix_4x4 scale = scaling_matrix(2, 2, 2);
+    Pattern_set_transform(base->material->pattern, 1, &scale);
     return wall;
 }
 static Plane *right_wall_create(void)
@@ -76,11 +81,14 @@ static Plane *right_wall_create(void)
     Matrix_4x4 rotate_to_xy = rotation_matrix(PI / 2, (VectorXYZ){1, 0, 0});
     Matrix_4x4 rotate_around_z = rotation_matrix(-PI / 3, (VectorXYZ){0, 0, 1});
     Matrix_4x4 translate = translation_matrix(0, 0, 10);
-    base->material->color = (Color){1, 0.9, 0.9};
-    base->material->specular = 0.1;
-    base->material->diffuse = 0.5;
-    base->material->reflective = 0.2;
     Shape_set_transform(base, 3, &rotate_around_z, &rotate_to_xy, &translate);
+    base->material->color = (Color){1, .9, 0.9};
+    base->material->specular = 0.1;
+    base->material->diffuse = 0.2;
+    base->material->ambient = 0.7;
+    base->material->transparency = 0;
+    base->material->reflective = 0.2;
+    base->material->refractive_index = 1.33;
     return wall;
 }
 static float x_y_poly(float x)
@@ -100,7 +108,7 @@ static void render_test(void)
     /* Sphere right_wall = right_wall_create(); */
     // Create world
     World *world = init_default_world();
-    world->lights[0]->intensity *= 1.2;
+    /* world->lights[0]->intensity *= 1.2; */
     // Add floor and walls
     world->funcTab->add_object(world, (Shape *)floor);
     world->funcTab->add_object(world, (Shape *)ceiling_create());
@@ -111,16 +119,12 @@ static void render_test(void)
         translation_matrix((simd_float3){-0.5, 1, 0.5});
     Shape *middle = world->shapeArray[0];
     middle->funcTab->set_transform(middle, &translateMiddle);
-    middle->material->color = (Color){0.3, 1, 0.5}; // Green
-    middle->material->diffuse = 0.8;
+    middle->material->color = (Color){0.1, 0.5, 0.25}; // Green
+    middle->material->diffuse = 0.2;
     middle->material->specular = 0.99;
-    Matrix_4x4 scale_ring = scaling_matrix(.5, 1, .1);
-    Matrix_4x4 rotate_y = rotation_matrix(-PI / 2, (VectorXYZ){0, -1, 1});
-    Pattern *middlePat = (Pattern *)ring_pattern(
-        (Color){221.0 / 255, 160.0 / 255, 22.0 / 255}, (Color){0.2, 0.2, 0.2});
-    middlePat->funcTab->set_transform(middlePat, 2, &scale_ring, &rotate_y);
-    middle->material->pattern = middlePat;
-    middle->material->reflective = 0.3;
+    middle->material->reflective = 0.9;
+    middle->material->transparency = 1.0;
+    middle->material->refractive_index = 1.5;
     // Modify the smaller sphere
     simd_float4x4 translateRight =
         translation_matrix((simd_float3){1.5, 0.5, -0.5});
@@ -147,28 +151,32 @@ static void render_test(void)
     leftBase->funcTab->set_transform(leftBase, &translateLeft);
     leftBase->material->color = (Color){1, 0.5, 0.5};
     leftBase->material->diffuse = 0.9;
-    leftBase->material->specular = 0.9;
-    leftBase->material->reflective = 0.3;
-    leftBase->material->shininess = 10;
+    leftBase->material->specular = 1;
+    leftBase->material->reflective = 0.9;
+    leftBase->material->shininess = 300;
+    leftBase->material->transparency = 1.0;
+    leftBase->material->refractive_index = 1.5;
     world->funcTab->add_object(world, leftBase);
     // Add sphere
     Sphere *large = create_Sphere();
     Shape *largeBase = (Shape *)large;
-    largeBase->material->color = (Color){.2, .7, .9};
-    largeBase->material->diffuse = 0.3;
+    largeBase->material->color = (Color){.2, .2, .9};
+    largeBase->material->diffuse = 0.1;
     largeBase->material->reflective = 0.8;
+    largeBase->material->transparency = 1.0;
+    largeBase->material->refractive_index = 1.5;
     Matrix_4x4 translate = translation_matrix(0, 4, 8);
     Matrix_4x4 scale_large = scaling_matrix(2, 2, 2);
     Shape_set_transform(largeBase, 2, &scale_large, &translate);
     world->funcTab->add_object(world, largeBase);
-    Camera *cam = init_Camera(1920, 1080, PI / 3);
+    Camera *cam = init_Camera(640, 320, PI / 4);
     simd_float4 from, to, upVector;
-    from = (simd_float4){0, 1.5, -5, 1};
-    to = (simd_float4){0, 1, 0, 1};
+    from = (simd_float4){.5, 1.5, -6, 1};
+    to = (simd_float4){.0, 1, 0, 1};
     upVector = (simd_float4){0, 1, 0, 0};
     simd_float4x4 transMat = view_transform(&from, &to, &upVector);
     *cam->transform = simd_mul(transMat, *cam->transform);
-    Camera *termCam = init_Camera(140 / 2, 36, PI / 3);
+    Camera *termCam = init_Camera(144 / 2, 40, PI / 4);
     *termCam->transform = simd_mul(transMat, *termCam->transform);
     printf("\e[?25l");
     /* int prog = 0; */
@@ -182,6 +190,8 @@ static void render_test(void)
     char *frameName;
     asprintf(&frameName, "./render_world/world_render_%i.ppm", 0);
     fig->printCanvas(fig, frameName);
+    system("convert render_world/world_render_0.ppm $PNG_PARAM "
+           "render_world/world_render_0.png");
     fig->destroy(fig);
     /* printProgress(prog, 200, (double)(prog) / (double)200, frameName); */
     free(frameName);
@@ -194,6 +204,13 @@ static void render_test(void)
         world->lights[0]->pos.y = x_y_poly(world->lights[0]->pos.x);
         termFig->destroy(termFig);
     }
+    PPMCanvas *fig2 = cam->funcTab->render(cam, world);
+    asprintf(&frameName, "./render_world/world_render_%i.ppm", 1);
+    fig2->printCanvas(fig2, frameName);
+    fig2->destroy(fig2);
+    system("convert render_world/world_render_1.ppm $PNG_PARAM "
+           "render_world/world_render_1.png");
+    free(frameName);
     cam->funcTab->destroy(cam);
     world->funcTab->destroy(world);
     termCam->funcTab->destroy(termCam);
