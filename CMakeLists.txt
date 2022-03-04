@@ -19,7 +19,7 @@ option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 # Test 3
 # add_library(ray ./src/ray/ray.c)
 add_library(shape INTERFACE ./src/geometry/shape.h)
-add_library(geometry ./src/geometry/sphere.c ./src/geometry/plane.c ./src/geometry/geometry.c ./src/geometry/patterns.c)
+add_library(geometry ./src/geometry/sphere.c ./src/geometry/plane.c ./src/geometry/cube.c ./src/geometry/geometry.c ./src/geometry/patterns.c)
 target_link_libraries(geometry shape)
 # add_library(geometry ./src/geometry/sphere.c  ./src/geometry/geometry.c)
 # add_executable(ray_sphere ./src/ray_test.c)
@@ -53,3 +53,9 @@ target_link_libraries(pattern_test geometry)
 # Test reflection
 add_executable(reflect_test ./src/reflect_test.c)
 target_link_libraries(reflect_test geometry)
+# Test refraction
+add_executable(refract_test ./src/refractive_test.c)
+target_link_libraries(refract_test geometry)
+# Test cube
+add_executable(cube_test ./src/cube_test.c)
+target_link_libraries(cube_test geometry)
