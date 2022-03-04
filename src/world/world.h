@@ -4,7 +4,9 @@
 #include <lights/lights.h>
 #include <ray/ray.h>
 #include <stdbool.h>
+#include <string.h>
 #include <types/types.h>
+#include <world/world_helper.h>
 
 /* typedef section */
 typedef struct world World;
@@ -29,6 +31,9 @@ struct PreComp
     Vector *normalV;
     Vector *reflectV;
     Point *over_point;
+    Point *under_point;
+    float n1;
+    float n2;
     bool inside;
     void (*destroy)(PreComp *self);
 };
@@ -61,16 +66,21 @@ static inline void add_shape(World *self, Shape *shapeObj);
 /* @abstract: Intersect the world with the given ray, and then return
  * the color at the intersection */
 static inline Color color_at(World *self, Ray *r, int to_reflect);
-/* @abstratc: Reflected color */
+/* @abstract: Reflected color */
 static inline Color reflected_color(World *self, PreComp *comp, int to_reflect);
+/* @abstract: Refracted color */
+static inline Color refracted_color(World *self, PreComp *comp, int to_refract);
 /* @abstract: Determine whether the point is in shadow */
 static inline bool is_shadowed(World *self, simd_float4 *point);
+/* @abstract: Schlick function to approximate Fresnel's equations */
+static inline float schlick(PreComp *comp);
 
 /* @abstrat: Release memory of a PreComp struct */
 /* @abstract: Init a PreComp struct by an Intersect and a ray */
-/* @params: const Intersect *, const Ray * */
+/* @params: const Intersect *, const Ray *, IntersectCollection **/
 /* @Warning: Free after use! */
-static inline PreComp *prepare_computations(Intersect *intxs, const Ray *r);
+static inline PreComp *prepare_computations(Intersect *intxs, const Ray *r,
+                                            IntersectCollection *xs);
 static inline void destroy_precomp(PreComp *self);
 /* @abstrac: Returns the IntersectCollection ptr of a ray intersects with
  * the world.
@@ -148,7 +158,7 @@ static inline Color color_at(World *self, Ray *r, int to_reflect)
     {
         return (Color){0, 0, 0};
     }
-    PreComp *comp = prepare_computations(hit, r);
+    PreComp *comp = prepare_computations(hit, r, xs);
     Color result = shade_hit(self, comp, to_reflect);
     comp->destroy(comp);
     return result;
@@ -162,6 +172,24 @@ static inline Color reflected_color(World *self, PreComp *comp, int to_reflect)
     Ray reflect_ray = init_Ray(*comp->over_point, *comp->reflectV);
     Color color = color_at(self, &reflect_ray, to_reflect - 1);
     return color * comp->object->material->reflective;
+}
+static inline Color refracted_color(World *self, PreComp *comp, int to_refract)
+{
+    if (to_refract <= 0)
+        return (Color){0, 0, 0};
+    if (comp->object->material->transparency == 0.0)
+        return (Color){0, 0, 0};
+    float n_ratio = comp->n1 / comp->n2;
+    float cos_i = simd_dot(*comp->eyeV, *comp->normalV);
+    float sin2_t = n_ratio * n_ratio * (1 - cos_i * cos_i);
+    if (sin2_t > 1)
+        return (Color){0, 0, 0};
+    Vector direction_refract =
+        simd_refract(*comp->eyeV, *comp->normalV, n_ratio);
+    Ray refract_ray = init_Ray(*comp->under_point, direction_refract);
+    Color color = color_at(self, &refract_ray, to_refract - 1) *
+                  comp->object->material->transparency;
+    return color;
 }
 static inline bool is_shadowed(World *self, simd_float4 *point)
 {
@@ -196,19 +224,68 @@ static inline bool is_shadowed(World *self, simd_float4 *point)
     }
     return true;
 }
-static inline PreComp *prepare_computations(Intersect *intxs, const Ray *r)
+
+static inline float schlick(PreComp *comp)
+{
+    float cos_eye_normal = simd_dot(*comp->eyeV, *comp->normalV);
+    if (comp->n1 > comp->n2)
+    {
+        float n = comp->n1 / comp->n2;
+        float sin2_t = pow(n, 2) * (1 - pow(cos_eye_normal, 2));
+        if (sin2_t > 1)
+            return 1.0;
+        float cos_t = sqrtf(1 - sin2_t);
+        cos_eye_normal = cos_t; // when n1 > n2 use cos(theta_t) instead
+    }
+    float r0 = pow(((comp->n1 - comp->n2) / (comp->n1 + comp->n2)), 2);
+    float result = r0 + (1 - r0) * pow((1 - cos_eye_normal), 5);
+    return result;
+}
+static int cmp_shape(const void *a, const void *b)
+{
+    return memcmp(a, b, sizeof(Shape *));
+}
+static inline PreComp *prepare_computations(Intersect *hit, const Ray *r,
+                                            IntersectCollection *xs)
 {
     PreComp *comp = malloc(sizeof(PreComp));
     if (!comp)
     {
         fprintf(stderr, "Not enough memory\n");
     }
-    comp->t = intxs->t;
-    comp->object = intxs->object;
+    struct ShapeList containers = init_ShapeList();
+    for (int i = 0; i < xs->intersects_counts; ++i)
+    {
+        if (xs->intersects[i] == hit)
+        {
+            if (containers.length == 0)
+                comp->n1 = 1.0;
+            else
+                comp->n1 = containers.tail->object->material->refractive_index;
+        }
+        struct ShapeList_Node *np =
+            find_obj(&containers, xs->intersects[i]->object);
+        if (np)
+            delete_obj_from_list(&containers, np);
+        else
+            add_obj(&containers, xs->intersects[i]->object);
+        if (xs->intersects[i] == hit)
+        {
+            if (containers.length == 0)
+                comp->n2 = 1.0;
+            else
+                comp->n2 = containers.tail->object->material->refractive_index;
+            break;
+        }
+    }
+    destroy_ShapeList(&containers);
+    comp->t = hit->t;
+    comp->object = hit->object;
     comp->point = malloc(sizeof(Point));
-    *comp->point = currPosition(r, intxs->t);
+    *comp->point = currPosition(r, hit->t);
     comp->eyeV = malloc(sizeof(Vector));
-    *comp->eyeV = simd_make_float4(simd_make_float3(-r->directionVec), 0);
+    *comp->eyeV = -r->directionVec; // the directionVec has been normalized
+    comp->eyeV->w = 0;
     comp->normalV = malloc(sizeof(Vector));
     *comp->normalV =
         comp->object->funcTab->surface_normal_at(comp->object, comp->point);
@@ -227,6 +304,8 @@ static inline PreComp *prepare_computations(Intersect *intxs, const Ray *r)
     *comp->over_point = *comp->point + *comp->normalV * 10 * EPSILON;
     comp->reflectV = malloc(sizeof(Vector));
     *comp->reflectV = simd_reflect(r->directionVec, *comp->normalV);
+    comp->under_point = malloc(sizeof(Point));
+    *(comp->under_point) = *(comp->point) - *(comp->normalV) * 10 * EPSILON;
     comp->destroy = destroy_precomp;
     return comp;
 }
@@ -236,10 +315,11 @@ static inline void destroy_precomp(PreComp *self)
     free(self->eyeV);
     free(self->normalV);
     free(self->over_point);
+    free(self->under_point);
     free(self->reflectV);
     free(self);
 }
-static inline Color shade_hit(World *self, PreComp *comp, int to_reflect)
+static inline Color shade_hit(World *self, PreComp *comp, int remaining)
 {
     Color result = {0, 0, 0};
     bool shadowed = self->funcTab->is_shadowed(self, comp->over_point);
@@ -249,8 +329,17 @@ static inline Color shade_hit(World *self, PreComp *comp, int to_reflect)
             lighting(comp->object->material, comp->object, self->lights[i],
                      comp->point, comp->eyeV, comp->normalV, shadowed);
     }
-    Color reflected = reflected_color(self, comp, to_reflect);
-    return result + reflected;
+    Color reflected = reflected_color(self, comp, remaining);
+    Color refracted = refracted_color(self, comp, remaining);
+    Material *m = comp->object->material;
+    if (m->reflective > 0 && m->transparency > 0)
+    {
+        float reflectance = schlick(comp);
+        Color res =
+            result + reflected * reflectance + refracted * (1 - reflectance);
+        return res;
+    }
+    return result + reflected + refracted;
 }
 static inline IntersectCollection *intersect_world(World *self, Ray *rayPtr)
 {
