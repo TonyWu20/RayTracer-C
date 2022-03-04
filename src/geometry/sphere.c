@@ -16,7 +16,13 @@ FUNC Sphere *create_Sphere(void)
 {
     return create_Sphere(make_Point(0, 0, 0), 1);
 }
-
+Sphere *glass_Sphere(void)
+{
+    Sphere *sphere = create_Sphere();
+    sphere->shape.material->transparency = 1.0;
+    sphere->shape.material->refractive_index = 1.5;
+    return sphere;
+}
 void Sphere_intersect_with_ray(Shape *SphereSelf, Ray *r)
 {
     Sphere *self = (Sphere *)SphereSelf;

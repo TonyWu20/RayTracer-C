@@ -17,6 +17,9 @@ struct Sphere
 FUNC Sphere *create_Sphere(Point origin, float r);
 /* @abstract: Default unit sphere at origin */
 FUNC Sphere *create_Sphere(void);
+/* @abstract: Create a glassy sphere */
+/* @notes: The material will have 1.0 transparency, 1.5 refractive index */
+Sphere *glass_Sphere(void);
 /* @abstract: Find intersect with ray */
 /* @params: void *selfPtr (to be casted into Sphere * in function),
  * Matrix_4x4 *transformimat */
