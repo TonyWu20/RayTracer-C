@@ -5,7 +5,6 @@
 struct Plane
 {
     Shape shape;
-    Ray local_ray;
 };
 
 /* @abstract: Initialize a plane, extending in XZ plane infinitely */
