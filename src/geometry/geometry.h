@@ -1,4 +1,5 @@
 #pragma once
+#include <geometry/cube.h>
 #include <geometry/patterns.h>
 #include <geometry/plane.h>
 #include <geometry/shape.h>
